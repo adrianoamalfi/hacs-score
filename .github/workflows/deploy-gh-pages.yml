@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "0 */6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -48,8 +50,11 @@ jobs:
             exit 1
           fi
 
+      - name: Sync HACS datasets
+        run: npm run sync:hacs
+
       - name: Build site
-        run: npm run build
+        run: npx astro build
 
       - name: Verify publication output
         run: npm run verify:publication
