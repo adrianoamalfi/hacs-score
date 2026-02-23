@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyPreset,
+  compareSlugsToQueryValue,
   DEFAULT_STATE,
   filterRows,
   queryToState,
+  queryValueToCompareSlugs,
   sortRows,
   stateToQuery,
   type CatalogItem
@@ -122,5 +124,14 @@ describe('catalog pure functions', () => {
       sort: 'updated-desc',
       featured: true
     });
+  });
+
+  it('serializes compare slugs into a capped, unique query value', () => {
+    expect(compareSlugsToQueryValue(['alpha', 'alpha', 'beta', 'gamma', 'delta'])).toBe('alpha,beta,gamma');
+  });
+
+  it('restores compare slugs from query value', () => {
+    expect(queryValueToCompareSlugs('alpha,beta,beta,gamma,delta')).toEqual(['alpha', 'beta', 'gamma']);
+    expect(queryValueToCompareSlugs(null)).toEqual([]);
   });
 });

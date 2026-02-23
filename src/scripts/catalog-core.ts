@@ -37,6 +37,7 @@ export type CatalogItem = {
 };
 
 const DAY_MS = 1000 * 60 * 60 * 24;
+const MAX_COMPARE_ITEMS = 3;
 const SORT_VALUES: SortKey[] = ['recommended-desc', 'stars-desc', 'updated-desc', 'name-asc', 'name-desc', 'stars-asc'];
 
 export const DEFAULT_STATE: CatalogState = {
@@ -107,6 +108,25 @@ export function queryToState(search: string, categories: string[]): CatalogState
     sort,
     featured: params.get('featured') === '1'
   };
+}
+
+export function compareSlugsToQueryValue(compareSlugs: string[]): string {
+  const unique = Array.from(new Set(compareSlugs.map((value) => value.trim()).filter(Boolean)));
+  return unique.slice(0, MAX_COMPARE_ITEMS).join(',');
+}
+
+export function queryValueToCompareSlugs(compareValue: string | null | undefined): string[] {
+  if (!compareValue) return [];
+  const unique = new Set<string>();
+
+  for (const slug of compareValue.split(',')) {
+    const trimmed = slug.trim();
+    if (!trimmed) continue;
+    unique.add(trimmed);
+    if (unique.size >= MAX_COMPARE_ITEMS) break;
+  }
+
+  return Array.from(unique);
 }
 
 export function filterRows(items: CatalogItem[], state: CatalogState, now = Date.now()): CatalogItem[] {

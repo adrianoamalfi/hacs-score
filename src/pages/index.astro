@@ -328,7 +328,14 @@ const seo = buildHomeSeo({
         <div class="mt-4 rounded-xl border border-base-300/70 bg-base-200/50 p-3 text-xs text-base-content/70">
           Chart legend: higher bars are better for score, confidence, and maintenance health.
         </div>
+        <p id="compareShareStatus" class="mt-3 text-xs text-base-content/70" aria-live="polite"></p>
         <div class="modal-action">
+          <button id="shareCompareButton" class="btn btn-primary btn-sm gap-1.5" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.7 10.7a3 3 0 1 0 0 2.6m6.6-6.2a3 3 0 1 1 0 2.6m0 4.2a3 3 0 1 1 0 2.6M9.9 12l4.2-2.1m-4.2 2.1 4.2 2.1" />
+            </svg>
+            Share comparison
+          </button>
           <form method="dialog">
             <button class="btn">Close</button>
           </form>

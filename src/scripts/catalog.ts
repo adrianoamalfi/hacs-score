@@ -1,7 +1,9 @@
 import {
   applyPreset,
+  compareSlugsToQueryValue,
   DEFAULT_STATE,
   filterRows,
+  queryValueToCompareSlugs,
   queryToState,
   sortRows,
   stateToQuery,
@@ -208,12 +210,22 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
   const clearCompareButton = document.getElementById('clearCompareButton') as HTMLButtonElement;
   const compareDialog = document.getElementById('compareDialog') as HTMLDialogElement;
   const compareResults = document.getElementById('compareResults') as HTMLDivElement;
+  const shareCompareButton = document.getElementById('shareCompareButton') as HTMLButtonElement;
+  const compareShareStatus = document.getElementById('compareShareStatus') as HTMLParagraphElement;
   const categories = [...categorySelect.options].map((option) => option.value).filter((value) => value !== 'all');
   const dateFormatter = new Intl.DateTimeFormat('en', { year: 'numeric', month: 'short', day: '2-digit' });
 
   let allIntegrations: CatalogItem[] = [];
   let bySlug = new Map<string, CatalogItem>();
   let state = queryToState(window.location.search, categories);
+  const readCompareSlugsFromUrl = () =>
+    queryValueToCompareSlugs(
+      new URLSearchParams(window.location.search.startsWith('?') ? window.location.search.slice(1) : window.location.search).get(
+        'compare'
+      )
+    );
+  let requestedCompareSlugs = readCompareSlugsFromUrl();
+  let hasTrackedSharedVisit = false;
   let visibleLimit = pageSize;
   let requestId = 0;
   const selectedSlugs = new Set<string>();
@@ -248,7 +260,14 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
   }
 
   function updateUrl() {
-    const query = stateToQuery(state);
+    const params = new URLSearchParams(stateToQuery(state));
+    const compareValue = compareSlugsToQueryValue(compareOrder.filter((slug) => selectedSlugs.has(slug)));
+    if (compareValue) {
+      params.set('compare', compareValue);
+    } else {
+      params.delete('compare');
+    }
+    const query = params.toString();
     const nextUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
     window.history.replaceState({}, '', nextUrl);
   }
@@ -285,6 +304,34 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
         `
       )
       .join('');
+  }
+
+  function clearShareStatus() {
+    compareShareStatus.textContent = '';
+  }
+
+  function applySharedCompareSelection() {
+    if (requestedCompareSlugs.length === 0) return;
+
+    for (const slug of requestedCompareSlugs) {
+      if (!bySlug.has(slug)) continue;
+      if (selectedSlugs.has(slug)) continue;
+      selectedSlugs.add(slug);
+      compareOrder.push(slug);
+      if (selectedSlugs.size >= 3) break;
+    }
+
+    const validCount = selectedSlugs.size;
+    if (validCount >= 2) {
+      if (!hasTrackedSharedVisit) {
+        track('catalog_compare_shared_visit', { selected_count: validCount });
+        hasTrackedSharedVisit = true;
+      }
+      renderCompareResults();
+      if (!compareDialog.open) {
+        compareDialog.showModal();
+      }
+    }
   }
 
   function renderCompareResults() {
@@ -473,6 +520,7 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
       selectedSlugs.delete(slug);
       const index = compareOrder.indexOf(slug);
       if (index >= 0) compareOrder.splice(index, 1);
+      clearShareStatus();
       track('catalog_compare_remove', { slug, selected_count: selectedSlugs.size });
     } else {
       if (selectedSlugs.size >= 3) {
@@ -481,6 +529,7 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
       }
       selectedSlugs.add(slug);
       compareOrder.push(slug);
+      clearShareStatus();
       track('catalog_compare_add', { slug, selected_count: selectedSlugs.size });
     }
 
@@ -498,6 +547,7 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
     selectedSlugs.delete(slug);
     const idx = compareOrder.indexOf(slug);
     if (idx >= 0) compareOrder.splice(idx, 1);
+    clearShareStatus();
     track('catalog_compare_remove', { slug, selected_count: selectedSlugs.size });
     renderComparePanel();
     void renderCatalog(false);
@@ -515,9 +565,36 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
     const previousCount = selectedSlugs.size;
     selectedSlugs.clear();
     compareOrder.splice(0, compareOrder.length);
+    clearShareStatus();
     track('catalog_compare_clear', { previous_count: previousCount });
     renderComparePanel();
     void renderCatalog(false);
+  });
+
+  shareCompareButton.addEventListener('click', async () => {
+    const selectedCount = selectedSlugs.size;
+    if (selectedCount < 2) {
+      compareShareStatus.textContent = 'Select at least two integrations to share this comparison.';
+      return;
+    }
+
+    updateUrl();
+    const shareUrl = window.location.href;
+
+    if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+      compareShareStatus.textContent = 'Copy is not available in this browser.';
+      track('catalog_compare_share_clicked', { selected_count: selectedCount, copy_success: false, method: 'clipboard_api_missing' });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      compareShareStatus.textContent = 'Share link copied.';
+      track('catalog_compare_share_clicked', { selected_count: selectedCount, copy_success: true, method: 'clipboard_api' });
+    } catch {
+      compareShareStatus.textContent = 'Unable to copy link. Copy the URL from your browser.';
+      track('catalog_compare_share_clicked', { selected_count: selectedCount, copy_success: false, method: 'clipboard_api' });
+    }
   });
 
   resetFiltersButton.addEventListener('click', () => {
@@ -539,7 +616,9 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
 
   window.addEventListener('popstate', () => {
     state = queryToState(window.location.search, categories);
+    requestedCompareSlugs = readCompareSlugsFromUrl();
     setControlValues(state);
+    applySharedCompareSelection();
     void renderCatalog(false);
   });
   window.addEventListener(
@@ -550,6 +629,7 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
     { once: true }
   );
 
+  applySharedCompareSelection();
   renderComparePanel();
   void renderCatalog(false);
 }
