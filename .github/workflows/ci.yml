@@ -12,6 +12,8 @@ jobs:
     env:
       SITE_URL: ${{ vars.SITE_URL || 'https://example.com' }}
       BASE_PATH: ${{ vars.BASE_PATH || '/' }}
+      WEBSITE_ID: ${{ vars.WEBSITE_ID || '' }}
+      UMAMI_SCRIPT_URL: ${{ vars.UMAMI_SCRIPT_URL || '' }}
       HACS_FETCH_TIMEOUT_MS: "30000"
       HACS_FETCH_STRICT: ${{ github.event_name == 'pull_request' && 'false' || (github.ref == 'refs/heads/main' && 'true' || 'false') }}
     steps:
@@ -28,6 +30,8 @@ jobs:
         run: |
           echo "SITE_URL=${SITE_URL}"
           echo "BASE_PATH=${BASE_PATH}"
+          echo "WEBSITE_ID configured=$([ -n \"${WEBSITE_ID}\" ] && echo true || echo false)"
+          echo "UMAMI_SCRIPT_URL=${UMAMI_SCRIPT_URL:-<default cloud>}"
           echo "HACS_FETCH_STRICT=${HACS_FETCH_STRICT}"
           echo "HACS_FETCH_TIMEOUT_MS=${HACS_FETCH_TIMEOUT_MS}"
 
@@ -42,4 +46,3 @@ jobs:
 
       - name: Verify publication output
         run: npm run verify:publication
-

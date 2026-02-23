@@ -50,14 +50,30 @@ function formatDate(value) {
         {formatStars(integration.stars)} stars
       </span>
       <div class="flex gap-2">
-        <a class="btn btn-sm btn-primary gap-1.5" href={integration.detailsPath}>
+        <a
+          class="btn btn-sm btn-primary gap-1.5"
+          href={integration.detailsPath}
+          data-umami-event="featured_open_score_profile"
+          data-umami-slug={integration.slug}
+          data-umami-category={integration.category}
+          data-umami-location="featured_card"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18" />
             <path stroke-linecap="round" stroke-linejoin="round" d="m19 9-5 5-4-4-4 4" />
           </svg>
           Open Score Profile
         </a>
-        <a class="btn btn-sm btn-outline gap-1.5" href={integration.url} target="_blank" rel="noopener noreferrer">
+        <a
+          class="btn btn-sm btn-outline gap-1.5"
+          href={integration.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-umami-event="featured_open_github"
+          data-umami-slug={integration.slug}
+          data-umami-category={integration.category}
+          data-umami-location="featured_card"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M14 4h6v6" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M10 14 20 4" />

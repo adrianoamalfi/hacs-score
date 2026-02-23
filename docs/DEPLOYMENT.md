@@ -13,6 +13,8 @@ Publish and validation workflows:
 3. In `Settings > Secrets and variables > Actions > Variables` set:
    - `SITE_URL`: full production URL (required, non-placeholder)
    - `BASE_PATH`: `/` (user/org pages) or `/<repo>/` (project pages)
+   - `WEBSITE_ID`: Umami website ID (optional, enables tracking in production)
+   - `UMAMI_SCRIPT_URL`: optional script URL (default `https://cloud.umami.is/script.js`)
 4. Every push to `main` triggers automatic build and deploy.
 
 ### Build settings used by the workflow
@@ -37,6 +39,8 @@ Publish and validation workflows:
    - `BASE_PATH`: `/`
    - `HACS_FETCH_STRICT`: `true`
    - `HACS_FETCH_TIMEOUT_MS`: `30000`
+   - `WEBSITE_ID`: Umami website ID (optional)
+   - `UMAMI_SCRIPT_URL`: optional script URL (default `https://cloud.umami.is/script.js`)
 4. Deploy.
 
 ## Cloudflare Workers (Wrangler assets deploy)
@@ -53,6 +57,8 @@ Use this mode when your platform runs an explicit deploy command like `npx wrang
    - `BASE_PATH`: `/`
    - `HACS_FETCH_STRICT`: `true`
    - `HACS_FETCH_TIMEOUT_MS`: `30000`
+   - `WEBSITE_ID`: Umami website ID (optional)
+   - `UMAMI_SCRIPT_URL`: optional script URL (default `https://cloud.umami.is/script.js`)
 
 This repo includes `wrangler.jsonc` with `assets.directory: "./dist"`, so Wrangler publishes the static build output.
 
@@ -64,6 +70,8 @@ This repo includes `wrangler.jsonc` with `assets.directory: "./dist"`, so Wrangl
 | `BASE_PATH` | `/` | `/<repo>/` | `/` |
 | `HACS_FETCH_STRICT` | `true` | `true` | `true` |
 | `HACS_FETCH_TIMEOUT_MS` | `30000` | `30000` | `30000` |
+| `WEBSITE_ID` | optional | optional | optional |
+| `UMAMI_SCRIPT_URL` | optional | optional | optional |
 
 ## Custom domain
 

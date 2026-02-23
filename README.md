@@ -100,6 +100,12 @@ Variables used in `astro.config.mjs`:
   - GitHub Pages project site: `/<repo>/`
   - Cloudflare Pages: usually `/`
 
+Variables used for analytics in `src/layouts/BaseLayout.astro`:
+- `WEBSITE_ID`: Umami website ID. Tracking script is included only in production when this variable is set.
+- `UMAMI_SCRIPT_URL`: optional Umami script host URL.
+  - Default: `https://cloud.umami.is/script.js`
+  - Set to your self-hosted endpoint for self-hosted Umami.
+
 ## Content management
 
 Integrations data is stored in:
@@ -212,6 +218,10 @@ Required environment variables:
 - `BASE_PATH`: `/` or `/<repo>/` depending on platform/site type
 - `HACS_FETCH_STRICT`: recommended `true` for publish jobs
 - `HACS_FETCH_TIMEOUT_MS`: recommended `30000`
+
+Optional analytics environment variables:
+- `WEBSITE_ID`: enables Umami tracking in production only when present
+- `UMAMI_SCRIPT_URL`: optional override for Umami script URL (cloud fallback if omitted)
 
 ## HACS data sync
 

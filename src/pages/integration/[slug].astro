@@ -75,21 +75,46 @@ const pageDescription = `${integration.name} has a HACS Score of ${integration.r
 <BaseLayout title={pageTitle} description={pageDescription}>
   <main class="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <a href="/" class="btn btn-ghost btn-sm gap-1.5">
+      <a
+        href="/"
+        class="btn btn-ghost btn-sm gap-1.5"
+        data-umami-event="integration_back_to_ranking"
+        data-umami-slug={integration.slug}
+        data-umami-category={integration.category}
+        data-umami-location="integration_header"
+      >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="m15 18-6-6 6-6" />
         </svg>
         Back to ranking
       </a>
       <div class="flex gap-2">
-        <a class="btn btn-sm btn-outline gap-1.5" href={`https://github.com/${integration.repo}/issues`} target="_blank" rel="noopener noreferrer">
+        <a
+          class="btn btn-sm btn-outline gap-1.5"
+          href={`https://github.com/${integration.repo}/issues`}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-umami-event="integration_open_issues"
+          data-umami-slug={integration.slug}
+          data-umami-category={integration.category}
+          data-umami-location="integration_header"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 9h6M9 13h4" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-3.4-7l.4.3a9 9 0 0 1 3 6.7Z" />
           </svg>
           Issues ({integration.openIssues})
         </a>
-        <a class="btn btn-sm btn-primary gap-1.5" href={integration.url} target="_blank" rel="noopener noreferrer">
+        <a
+          class="btn btn-sm btn-primary gap-1.5"
+          href={integration.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-umami-event="integration_open_repository"
+          data-umami-slug={integration.slug}
+          data-umami-category={integration.category}
+          data-umami-location="integration_header"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M14 4h6v6" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M10 14 20 4" />
@@ -146,7 +171,16 @@ const pageDescription = `${integration.name} has a HACS Score of ${integration.r
               </div>
             </div>
 
-            <a class="btn btn-primary btn-sm w-full gap-1.5" href={integration.url} target="_blank" rel="noopener noreferrer">
+            <a
+              class="btn btn-primary btn-sm w-full gap-1.5"
+              href={integration.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-umami-event="integration_evaluate_click"
+              data-umami-slug={integration.slug}
+              data-umami-category={integration.category}
+              data-umami-location="integration_cockpit"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="m19 9-5 5-4-4-4 4" />
@@ -255,7 +289,15 @@ const pageDescription = `${integration.name} has a HACS Score of ${integration.r
 
         <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {related.map((item) => (
-            <a href={item.detailsPath} class="catalog-card-2026 p-4" aria-label={`Open ${item.name} details`}>
+            <a
+              href={item.detailsPath}
+              class="catalog-card-2026 p-4"
+              aria-label={`Open ${item.name} details`}
+              data-umami-event="integration_related_open"
+              data-umami-slug={item.slug}
+              data-umami-category={item.category}
+              data-umami-location="integration_related"
+            >
               <div class="flex items-center justify-between gap-2">
                 <h3 class="font-semibold leading-tight">{item.name}</h3>
                 <span class="badge badge-outline">#{rankBySlug.get(item.slug)}</span>

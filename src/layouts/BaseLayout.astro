@@ -8,6 +8,9 @@ const {
 
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogTitle = `${title} | HACS`;
+const umamiWebsiteId = process.env.WEBSITE_ID?.trim();
+const umamiScriptUrl = process.env.UMAMI_SCRIPT_URL?.trim() || 'https://cloud.umami.is/script.js';
+const shouldLoadUmami = import.meta.env.PROD && Boolean(umamiWebsiteId);
 ---
 
 <!doctype html>
@@ -47,6 +50,76 @@ const ogTitle = `${title} | HACS`;
         rel="stylesheet"
       />
     </noscript>
+    {
+      shouldLoadUmami && (
+        <>
+          <script defer src={umamiScriptUrl} data-website-id={umamiWebsiteId}></script>
+          <script is:inline>
+            (() => {
+              const toPayload = (element) => {
+                const payload = {};
+                const map = {
+                  umamiSlug: 'slug',
+                  umamiCategory: 'category',
+                  umamiLocation: 'location',
+                  umamiType: 'type',
+                  umamiLabel: 'label',
+                  umamiValue: 'value',
+                  umamiPreset: 'preset'
+                };
+
+                for (const [sourceKey, targetKey] of Object.entries(map)) {
+                  const value = element.dataset[sourceKey];
+                  if (value) payload[targetKey] = value;
+                }
+
+                return payload;
+              };
+
+              const track = (eventName, payload = {}) => {
+                if (!eventName) return;
+                const umami = window.umami;
+                if (!umami || typeof umami.track !== 'function') return;
+                if (Object.keys(payload).length > 0) {
+                  umami.track(eventName, payload);
+                  return;
+                }
+                umami.track(eventName);
+              };
+
+              window.__hacsTrack = track;
+
+              document.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+
+                const explicit = target.closest('[data-umami-event]');
+                if (explicit instanceof HTMLElement) {
+                  const eventName = explicit.dataset.umamiEvent;
+                  if (eventName) {
+                    track(eventName, toPayload(explicit));
+                  }
+                }
+
+                const anchor = target.closest('a[href]');
+                if (!(anchor instanceof HTMLAnchorElement)) return;
+
+                const href = anchor.getAttribute('href') || '';
+                if (!href || href.startsWith('#')) return;
+
+                const destination = new URL(anchor.href, window.location.href);
+                if (destination.origin !== window.location.origin) {
+                  track('outbound_click', {
+                    destination_host: destination.host,
+                    destination_path: destination.pathname
+                  });
+                }
+              });
+            })();
+          </script>
+        </>
+      )
+    }
   </head>
   <body class="min-h-screen">
     <slot />

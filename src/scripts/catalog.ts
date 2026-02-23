@@ -17,6 +17,19 @@ type WorkerResult = {
   visible: CatalogItem[];
 };
 
+type TrackPayload = Record<string, string | number | boolean>;
+type TrackFn = (eventName: string, payload?: TrackPayload) => void;
+
+declare global {
+  interface Window {
+    __hacsTrack?: TrackFn;
+  }
+}
+
+function track(eventName: string, payload: TrackPayload = {}) {
+  window.__hacsTrack?.(eventName, payload);
+}
+
 function escapeHtml(value: unknown): string {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -106,14 +119,30 @@ function createCard(item: CatalogItem, dateFormatter: Intl.DateTimeFormat, isSel
           ${item.stars.toLocaleString('en-US')} stars
         </span>
         <div class="flex flex-wrap justify-end gap-2">
-          <a class="btn btn-sm btn-primary gap-1.5" href="${escapeHtml(item.detailsPath)}">
+          <a
+            class="btn btn-sm btn-primary gap-1.5"
+            href="${escapeHtml(item.detailsPath)}"
+            data-umami-event="catalog_open_score_profile"
+            data-umami-slug="${escapeHtml(item.slug)}"
+            data-umami-category="${escapeHtml(item.category)}"
+            data-umami-location="catalog_grid"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18" />
               <path stroke-linecap="round" stroke-linejoin="round" d="m19 9-5 5-4-4-4 4" />
             </svg>
             Open Score Profile
           </a>
-          <a class="btn btn-sm btn-outline gap-1.5" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">
+          <a
+            class="btn btn-sm btn-outline gap-1.5"
+            href="${escapeHtml(item.url)}"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-umami-event="catalog_open_github"
+            data-umami-slug="${escapeHtml(item.slug)}"
+            data-umami-category="${escapeHtml(item.category)}"
+            data-umami-location="catalog_grid"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M14 4h6v6" />
               <path stroke-linecap="round" stroke-linejoin="round" d="M10 14 20 4" />
@@ -198,6 +227,7 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
   try {
     allIntegrations = await loadCatalogData(options.dataUrl);
     bySlug = new Map(allIntegrations.map((item) => [item.slug, item]));
+    track('catalog_loaded', { total_items: allIntegrations.length });
   } catch {
     resultsSummary.textContent = 'Unable to load catalog data.';
     emptyState.hidden = false;
@@ -277,7 +307,14 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
           <article class="rounded-2xl border border-base-300/70 bg-base-100/70 p-4">
             <div class="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <a href="${escapeHtml(item.detailsPath)}" class="link link-hover text-base font-semibold">${escapeHtml(item.name)}</a>
+                <a
+                  href="${escapeHtml(item.detailsPath)}"
+                  class="link link-hover text-base font-semibold"
+                  data-umami-event="catalog_compare_open_score_profile"
+                  data-umami-slug="${escapeHtml(item.slug)}"
+                  data-umami-category="${escapeHtml(item.category)}"
+                  data-umami-location="compare_dialog"
+                >${escapeHtml(item.name)}</a>
                 <p class="text-xs text-base-content/65">${escapeHtml(item.repo)}</p>
               </div>
               <div class="flex flex-wrap gap-1.5 text-xs">
@@ -395,17 +432,32 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
 
   [searchInput, categorySelect, starsSelect, updatedSelect, confidenceSelect, sortSelect, featuredOnly].forEach((input) => {
     input.addEventListener('change', () => {
+      const changedField = input.id || input.name || 'unknown';
+      const payload: TrackPayload = { changed_field: changedField };
+      if (input === categorySelect) {
+        payload.category_scope = categorySelect.value === 'all' ? 'all' : 'specific';
+      } else if (input === starsSelect || input === updatedSelect || input === confidenceSelect || input === sortSelect) {
+        payload.selected = (input as HTMLSelectElement).value;
+      } else if (input === featuredOnly) {
+        payload.enabled = featuredOnly.checked;
+      }
+      track('catalog_filter_changed', payload);
       void renderCatalog(true);
     });
   });
 
   const debouncedSearchRender = debounce(() => {
+    const queryLength = searchInput.value.trim().length;
+    track('catalog_search_changed', {
+      query_length_bucket: queryLength === 0 ? 'empty' : queryLength <= 3 ? '1-3' : queryLength <= 8 ? '4-8' : '9+'
+    });
     void renderCatalog(true);
   }, 180);
   searchInput.addEventListener('input', debouncedSearchRender);
 
   loadMoreButton.addEventListener('click', () => {
     visibleLimit += pageSize;
+    track('catalog_load_more', { next_visible_limit: visibleLimit });
     void renderCatalog(false);
   });
 
@@ -421,6 +473,7 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
       selectedSlugs.delete(slug);
       const index = compareOrder.indexOf(slug);
       if (index >= 0) compareOrder.splice(index, 1);
+      track('catalog_compare_remove', { slug, selected_count: selectedSlugs.size });
     } else {
       if (selectedSlugs.size >= 3) {
         const oldest = compareOrder.shift();
@@ -428,6 +481,7 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
       }
       selectedSlugs.add(slug);
       compareOrder.push(slug);
+      track('catalog_compare_add', { slug, selected_count: selectedSlugs.size });
     }
 
     renderComparePanel();
@@ -444,11 +498,13 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
     selectedSlugs.delete(slug);
     const idx = compareOrder.indexOf(slug);
     if (idx >= 0) compareOrder.splice(idx, 1);
+    track('catalog_compare_remove', { slug, selected_count: selectedSlugs.size });
     renderComparePanel();
     void renderCatalog(false);
   });
 
   openCompareButton.addEventListener('click', () => {
+    track('catalog_compare_open', { selected_count: selectedSlugs.size });
     renderCompareResults();
     if (!compareDialog.open) {
       compareDialog.showModal();
@@ -456,8 +512,10 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
   });
 
   clearCompareButton.addEventListener('click', () => {
+    const previousCount = selectedSlugs.size;
     selectedSlugs.clear();
     compareOrder.splice(0, compareOrder.length);
+    track('catalog_compare_clear', { previous_count: previousCount });
     renderComparePanel();
     void renderCatalog(false);
   });
@@ -465,6 +523,7 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
   resetFiltersButton.addEventListener('click', () => {
     state = { ...DEFAULT_STATE };
     setControlValues(state);
+    track('catalog_reset_filters');
     void renderCatalog(false);
   });
 
@@ -473,6 +532,7 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
       const preset = button.dataset.preset || 'reset';
       state = applyPreset(preset);
       setControlValues(state);
+      track('catalog_preset_applied', { preset });
       void renderCatalog(false);
     });
   });
