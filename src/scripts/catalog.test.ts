@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyPreset,
+  compareSlugsToQueryValue,
   DEFAULT_STATE,
   filterRows,
   queryToState,
+  queryValueToCompareSlugs,
   sortRows,
   stateToQuery,
   type CatalogItem
@@ -122,5 +124,50 @@ describe('catalog pure functions', () => {
       sort: 'updated-desc',
       featured: true
     });
+  });
+
+  it.each([
+    {
+      label: 'falls back to defaults when numeric params are invalid',
+      search: '?stars=abc&updated=&confidence=Infinity',
+      expected: { stars: 0, updated: 0, confidence: 0 }
+    },
+    {
+      label: 'clamps and normalizes out-of-range values',
+      search: '?stars=999999&updated=9999&confidence=999',
+      expected: { stars: 2500, updated: 365, confidence: 85 }
+    },
+    {
+      label: 'normalizes non-bucket values to closest allowed values',
+      search: '?stars=600&updated=40&confidence=66',
+      expected: { stars: 500, updated: 30, confidence: 65 }
+    },
+    {
+      label: 'handles negative values by clamping to zero',
+      search: '?stars=-1&updated=-10&confidence=-10',
+      expected: { stars: 0, updated: 0, confidence: 0 }
+    },
+    {
+      label: 'uses lower bucket on equal distance',
+      search: '?updated=60',
+      expected: { updated: 30 }
+    }
+  ])('$label', ({ search, expected }) => {
+    const restored = queryToState(search, ['Security', 'Energy']);
+    expect(restored).toMatchObject({ ...DEFAULT_STATE, ...expected });
+  });
+
+  it('falls back to default sort when sort is invalid', () => {
+    const restored = queryToState('?sort=invalid', ['Security', 'Energy']);
+    expect(restored.sort).toBe(DEFAULT_STATE.sort);
+  });
+
+  it('serializes compare slugs into a capped, unique query value', () => {
+    expect(compareSlugsToQueryValue(['alpha', 'alpha', 'beta', 'gamma', 'delta'])).toBe('alpha,beta,gamma');
+  });
+
+  it('restores compare slugs from query value', () => {
+    expect(queryValueToCompareSlugs('alpha,beta,beta,gamma,delta')).toEqual(['alpha', 'beta', 'gamma']);
+    expect(queryValueToCompareSlugs(null)).toEqual([]);
   });
 });

@@ -1,0 +1,41 @@
+---
+title: "Astro SEO and Performance Checklist for Production Releases"
+description: "A practical release checklist covering metadata, sitemap, robots, social cards, and performance budgets for Astro static sites."
+pubDate: 2026-02-22
+updatedDate: 2026-02-23
+categories:
+  - Engineering
+  - SEO
+tags:
+  - astro
+  - lighthouse
+  - pagespeed
+  - seo
+cover: ./assets/seo-playbook.png
+coverAlt: "Production checklist visual for Astro SEO and performance quality gates."
+---
+
+Reliable publishing is not only about deployment success.  
+You also need **consistent metadata** and **measurable performance thresholds**.
+
+## Release checklist
+
+- Canonical URL matches `SITE_URL` and `BASE_PATH`.
+- Open Graph and Twitter tags are present on every route.
+- `robots.txt` points to the production sitemap.
+- Sitemap output reflects static routes.
+
+## Performance quality gates
+
+Use Lighthouse in CI with a minimum threshold so regressions fail early:
+
+- Performance
+- Accessibility
+- Best Practices
+- SEO
+
+## Keep reports actionable
+
+Treat PageSpeed as informational unless you control all runtime variables.
+Use it to prioritize fixes, while Lighthouse CI enforces baseline quality.
+

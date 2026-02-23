@@ -1,0 +1,103 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import SocialShare from '../../../components/SocialShare.astro';
+import ThemeToggle from '../../../components/ThemeToggle.astro';
+import { withBasePath } from '../../../lib/base-path';
+import {
+  formatBlogDate,
+  getBlogCategoryPath,
+  getBlogPostPath,
+  getBlogTagPath,
+  getPublishedBlogPosts,
+  toTaxonomySlug
+} from '../../../lib/blog';
+import { buildAbsoluteUrl, buildBlogPostSeo } from '../../../lib/seo';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedBlogPosts();
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post }
+  }));
+}
+
+const { post } = Astro.props as { post: CollectionEntry<'blog'> };
+const { Content } = await post.render();
+
+const canonicalUrl = buildAbsoluteUrl(
+  getBlogPostPath(post.slug, import.meta.env.BASE_URL),
+  Astro.site,
+  Astro.url,
+  import.meta.env.BASE_URL
+);
+
+const coverImageUrl = post.data.cover
+  ? buildAbsoluteUrl(post.data.cover.src, Astro.site, Astro.url, import.meta.env.BASE_URL)
+  : undefined;
+
+const seo = buildBlogPostSeo({
+  site: Astro.site,
+  currentUrl: Astro.url,
+  basePath: import.meta.env.BASE_URL,
+  title: post.data.title,
+  description: post.data.description,
+  slug: post.slug,
+  pubDate: post.data.pubDate,
+  updatedDate: post.data.updatedDate,
+  categories: post.data.categories,
+  tags: post.data.tags,
+  coverImageUrl,
+  twitterSite: process.env.TWITTER_SITE?.trim(),
+  ogLocale: process.env.SEO_OG_LOCALE?.trim() || 'en_US'
+});
+---
+
+<BaseLayout seo={seo}>
+  <main class="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+    <header class="glass-panel p-5 sm:p-6">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <a class="btn btn-sm btn-ghost" href={withBasePath('blog/', import.meta.env.BASE_URL)}>Back to blog</a>
+        <ThemeToggle location="blog_post" />
+      </div>
+      <p class="mt-4 text-xs text-base-content/65">
+        Published {formatBlogDate(post.data.pubDate)}
+        {post.data.updatedDate ? ` · Updated ${formatBlogDate(post.data.updatedDate)}` : ''}
+      </p>
+      <h1 class="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">{post.data.title}</h1>
+      <p class="mt-3 text-base leading-7 text-base-content/80">{post.data.description}</p>
+      <div class="mt-4 flex flex-wrap gap-2">
+        {post.data.categories.map((category) => (
+          <a class="badge badge-outline" href={getBlogCategoryPath(toTaxonomySlug(category), import.meta.env.BASE_URL)}>
+            {category}
+          </a>
+        ))}
+        {post.data.tags.map((tag) => (
+          <a class="badge badge-ghost" href={getBlogTagPath(toTaxonomySlug(tag), import.meta.env.BASE_URL)}>
+            #{tag}
+          </a>
+        ))}
+      </div>
+    </header>
+
+    {post.data.cover && (
+      <figure class="overflow-hidden rounded-3xl border border-base-300/70 bg-base-100/80">
+        <Image
+          src={post.data.cover}
+          alt={post.data.coverAlt || `${post.data.title} cover image`}
+          widths={[640, 960, 1280]}
+          sizes="(min-width: 1024px) 960px, 100vw"
+          loading="eager"
+          class="h-auto w-full"
+        />
+      </figure>
+    )}
+
+    <article class="blog-prose section-shell p-5 sm:p-6">
+      <Content />
+    </article>
+
+    <SocialShare title={post.data.title} url={canonicalUrl} location="blog_post_page" />
+  </main>
+</BaseLayout>

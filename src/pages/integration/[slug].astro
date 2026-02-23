@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ThemeToggle from '../../components/ThemeToggle.astro';
 import { loadIntegrations } from '../../data/hacs/load';
 import {
   freshnessSignal,
@@ -100,7 +101,17 @@ const seo = buildIntegrationSeo({
         </svg>
         Back to ranking
       </a>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
+        <a
+          class="btn btn-sm btn-ghost"
+          href={withBasePath('blog/', import.meta.env.BASE_URL)}
+          data-umami-event="integration_open_blog"
+          data-umami-slug={integration.slug}
+          data-umami-category={integration.category}
+          data-umami-location="integration_header"
+        >
+          Blog
+        </a>
         <a
           class="btn btn-sm btn-outline gap-1.5"
           href={`https://github.com/${integration.repo}/issues`}
@@ -134,6 +145,7 @@ const seo = buildIntegrationSeo({
           </svg>
           Open repository
         </a>
+        <ThemeToggle location="integration_header" />
       </div>
     </div>
 

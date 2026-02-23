@@ -64,8 +64,30 @@ const shouldLoadUmami = import.meta.env.PROD && Boolean(umamiWebsiteId);
 <!doctype html>
 <html lang="en" data-theme="hacs-dark">
   <head>
+    <script is:inline>
+      (() => {
+        const storageKey = 'hacs_theme';
+        const validThemes = new Set(['hacs-dark', 'hacs-light']);
+        const prefersDark =
+          typeof window !== 'undefined' &&
+          typeof window.matchMedia === 'function' &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const fallbackTheme = prefersDark ? 'hacs-dark' : 'hacs-light';
+
+        let storedTheme = null;
+        try {
+          storedTheme = localStorage.getItem(storageKey);
+        } catch {
+          storedTheme = null;
+        }
+
+        const resolvedTheme = validThemes.has(storedTheme || '') ? storedTheme : fallbackTheme;
+        document.documentElement.setAttribute('data-theme', resolvedTheme || 'hacs-dark');
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#102132" />
     <title>{resolvedSeo.title}</title>
 
@@ -109,92 +131,15 @@ const shouldLoadUmami = import.meta.env.PROD && Boolean(umamiWebsiteId);
       <script type="application/ld+json" set:html={JSON.stringify(entry)}></script>
     ))}
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap"
-      onload="this.onload=null;this.rel='stylesheet'"
-    />
-    <noscript>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap"
-        rel="stylesheet"
-      />
-    </noscript>
-    {
-      shouldLoadUmami && (
-        <>
-          <script defer src={umamiScriptUrl} data-website-id={umamiWebsiteId}></script>
-          <script is:inline>
-            (() => {
-              const toPayload = (element) => {
-                const payload = {};
-                const map = {
-                  umamiSlug: 'slug',
-                  umamiCategory: 'category',
-                  umamiLocation: 'location',
-                  umamiType: 'type',
-                  umamiLabel: 'label',
-                  umamiValue: 'value',
-                  umamiPreset: 'preset'
-                };
+    <script type="module" define:vars={{ shouldLoadUmami, umamiScriptUrl, umamiWebsiteId }}>
+      import { initAnalytics } from '../scripts/analytics';
 
-                for (const [sourceKey, targetKey] of Object.entries(map)) {
-                  const value = element.dataset[sourceKey];
-                  if (value) payload[targetKey] = value;
-                }
-
-                return payload;
-              };
-
-              const track = (eventName, payload = {}) => {
-                if (!eventName) return;
-                const umami = window.umami;
-                if (!umami || typeof umami.track !== 'function') return;
-                if (Object.keys(payload).length > 0) {
-                  umami.track(eventName, payload);
-                  return;
-                }
-                umami.track(eventName);
-              };
-
-              window.__hacsTrack = track;
-
-              document.addEventListener('click', (event) => {
-                const target = event.target;
-                if (!(target instanceof Element)) return;
-
-                const explicit = target.closest('[data-umami-event]');
-                if (explicit instanceof HTMLElement) {
-                  const eventName = explicit.dataset.umamiEvent;
-                  if (eventName) {
-                    track(eventName, toPayload(explicit));
-                  }
-                }
-
-                const anchor = target.closest('a[href]');
-                if (!(anchor instanceof HTMLAnchorElement)) return;
-
-                const href = anchor.getAttribute('href') || '';
-                if (!href || href.startsWith('#')) return;
-
-                const destination = new URL(anchor.href, window.location.href);
-                if (destination.origin !== window.location.origin) {
-                  track('outbound_click', {
-                    destination_host: destination.host,
-                    destination_path: destination.pathname
-                  });
-                }
-              });
-            })();
-          </script>
-        </>
-      )
-    }
+      initAnalytics({
+        enabled: Boolean(shouldLoadUmami),
+        scriptUrl: umamiScriptUrl,
+        websiteId: umamiWebsiteId || ''
+      });
+    </script>
   </head>
   <body class="min-h-screen">
     <slot />

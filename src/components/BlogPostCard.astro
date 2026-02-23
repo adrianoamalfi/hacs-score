@@ -1,0 +1,50 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { formatBlogDate, getBlogCategoryPath, getBlogPostPath, getBlogTagPath, toTaxonomySlug } from '../lib/blog';
+
+const {
+  post,
+  basePath = '/'
+} = Astro.props as {
+  post: CollectionEntry<'blog'>;
+  basePath?: string;
+};
+---
+
+<article class="section-shell h-full space-y-3 p-4 sm:p-5">
+  <p class="text-xs text-base-content/65">{formatBlogDate(post.data.pubDate)}</p>
+  <h2 class="text-xl font-bold leading-tight">
+    <a
+      href={getBlogPostPath(post.slug, basePath)}
+      class="link link-hover"
+      data-umami-event="blog_open_post"
+      data-umami-location="blog_list"
+      data-umami-label={post.slug}
+    >
+      {post.data.title}
+    </a>
+  </h2>
+  <p class="text-sm leading-6 text-base-content/80">{post.data.description}</p>
+  <div class="flex flex-wrap items-center gap-1.5">
+    {post.data.categories.map((category) => (
+      <a
+        class="badge badge-outline"
+        href={getBlogCategoryPath(toTaxonomySlug(category), basePath)}
+        data-umami-event="blog_open_category"
+        data-umami-location="blog_list"
+      >
+        {category}
+      </a>
+    ))}
+    {post.data.tags.slice(0, 3).map((tag) => (
+      <a
+        class="badge badge-ghost"
+        href={getBlogTagPath(toTaxonomySlug(tag), basePath)}
+        data-umami-event="blog_open_tag"
+        data-umami-location="blog_list"
+      >
+        #{tag}
+      </a>
+    ))}
+  </div>
+</article>

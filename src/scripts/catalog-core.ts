@@ -37,7 +37,11 @@ export type CatalogItem = {
 };
 
 const DAY_MS = 1000 * 60 * 60 * 24;
+const MAX_COMPARE_ITEMS = 3;
 const SORT_VALUES: SortKey[] = ['recommended-desc', 'stars-desc', 'updated-desc', 'name-asc', 'name-desc', 'stars-asc'];
+const ALLOWED_STARS = [0, 100, 500, 1000, 2500];
+const ALLOWED_UPDATED = [0, 30, 90, 365];
+const ALLOWED_CONFIDENCE = [0, 50, 65, 75, 85];
 
 export const DEFAULT_STATE: CatalogState = {
   q: '',
@@ -85,6 +89,35 @@ export function stateToQuery(state: CatalogState): string {
   return params.toString();
 }
 
+function parseQueryNumber(value: string | null, fallback: number): number {
+  if (value === null || value.trim() === '') {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function closestAllowedValue(value: number, allowedValues: number[]): number {
+  let closest = allowedValues[0];
+  let smallestDistance = Math.abs(value - closest);
+
+  for (let idx = 1; idx < allowedValues.length; idx += 1) {
+    const candidate = allowedValues[idx];
+    const distance = Math.abs(value - candidate);
+    if (distance < smallestDistance || (distance === smallestDistance && candidate < closest)) {
+      closest = candidate;
+      smallestDistance = distance;
+    }
+  }
+
+  return closest;
+}
+
 export function queryToState(search: string, categories: string[]): CatalogState {
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
 
@@ -94,19 +127,42 @@ export function queryToState(search: string, categories: string[]): CatalogState
   const sortFromUrl = (params.get('sort') || DEFAULT_STATE.sort) as SortKey;
   const sort = SORT_VALUES.includes(sortFromUrl) ? sortFromUrl : DEFAULT_STATE.sort;
 
-  const stars = Number(params.get('stars') || DEFAULT_STATE.stars);
-  const updated = Number(params.get('updated') || DEFAULT_STATE.updated);
-  const confidence = Number(params.get('confidence') || DEFAULT_STATE.confidence);
+  const starsRaw = parseQueryNumber(params.get('stars'), DEFAULT_STATE.stars);
+  const updatedRaw = parseQueryNumber(params.get('updated'), DEFAULT_STATE.updated);
+  const confidenceRaw = parseQueryNumber(params.get('confidence'), DEFAULT_STATE.confidence);
+
+  const stars = closestAllowedValue(clamp(starsRaw, 0, 2500), ALLOWED_STARS);
+  const updated = closestAllowedValue(clamp(updatedRaw, 0, 365), ALLOWED_UPDATED);
+  const confidence = closestAllowedValue(clamp(confidenceRaw, 0, 100), ALLOWED_CONFIDENCE);
 
   return {
     q: (params.get('q') || '').trim(),
     category,
-    stars: Number.isFinite(stars) && stars >= 0 ? stars : 0,
-    updated: Number.isFinite(updated) && updated >= 0 ? updated : 0,
-    confidence: Number.isFinite(confidence) && confidence >= 0 ? confidence : 0,
+    stars,
+    updated,
+    confidence,
     sort,
     featured: params.get('featured') === '1'
   };
+}
+
+export function compareSlugsToQueryValue(compareSlugs: string[]): string {
+  const unique = Array.from(new Set(compareSlugs.map((value) => value.trim()).filter(Boolean)));
+  return unique.slice(0, MAX_COMPARE_ITEMS).join(',');
+}
+
+export function queryValueToCompareSlugs(compareValue: string | null | undefined): string[] {
+  if (!compareValue) return [];
+  const unique = new Set<string>();
+
+  for (const slug of compareValue.split(',')) {
+    const trimmed = slug.trim();
+    if (!trimmed) continue;
+    unique.add(trimmed);
+    if (unique.size >= MAX_COMPARE_ITEMS) break;
+  }
+
+  return Array.from(unique);
 }
 
 export function filterRows(items: CatalogItem[], state: CatalogState, now = Date.now()): CatalogItem[] {

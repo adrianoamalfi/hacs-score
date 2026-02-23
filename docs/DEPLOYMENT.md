@@ -5,6 +5,7 @@
 Publish and validation workflows:
 - `.github/workflows/deploy-gh-pages.yml` (production deploy on `main`)
 - `.github/workflows/ci.yml` (validation on PRs and non-main pushes)
+- `.github/workflows/lighthouse.yml` (Lighthouse gate + optional PageSpeed report)
 
 ### Steps
 
@@ -17,6 +18,7 @@ Publish and validation workflows:
    - `UMAMI_SCRIPT_URL`: optional script URL (default `https://cloud.umami.is/script.js`)
    - `TWITTER_SITE`: optional X/Twitter handle for social cards
    - `SEO_OG_LOCALE`: optional Open Graph locale (default `en_US`)
+   - `PSI_API_KEY`: optional, enables PageSpeed report artifacts in Lighthouse workflow
 4. Every push to `main` triggers automatic build and deploy.
 
 ### Build settings used by the workflow
@@ -27,6 +29,7 @@ Publish and validation workflows:
 - Validation: `npm run verify:publication` (robots/sitemap/canonical/headers checks)
 - Output: `dist`
 - Strict data fetch: `HACS_FETCH_STRICT=true`
+- Sitemap output: `dist/sitemap-index.xml` + compatibility alias `dist/sitemap.xml`
 
 ## Cloudflare Pages (Direct Build from GitHub)
 
@@ -95,6 +98,7 @@ Run this checklist on the deployed domain:
 4. Canonical: page source canonical URL matches `SITE_URL` + `BASE_PATH`.
 5. Static headers: `_headers` rules applied (cache/security).
 6. Filters/sorting/compare UI all work in production.
+7. RSS endpoint responds: `https://<domain>/<base-path-if-any>rss.xml`.
 
 ## Troubleshooting
 
@@ -104,5 +108,7 @@ Run this checklist on the deployed domain:
   - Ensure `BASE_PATH=/<repo>/`.
 - Build fails due to HACS download
   - Increase `HACS_FETCH_TIMEOUT_MS` (for example `45000`) and retry.
+- Lighthouse job fails with Chrome lookup
+  - Keep `.github/workflows/lighthouse.yml` step `browser-actions/setup-chrome@v1` enabled.
 - Deploy workflow fails with placeholder URL
   - Set `SITE_URL` in GitHub repository variables.
