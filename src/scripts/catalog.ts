@@ -11,6 +11,7 @@ import {
   type CatalogState
 } from './catalog-core';
 import { maintenanceSignal, SCORE_HELP_TEXT } from '../lib/score-model';
+import { trackEvent, type TrackPayload } from './analytics';
 
 type WorkerResult = {
   type: 'result';
@@ -19,17 +20,8 @@ type WorkerResult = {
   visible: CatalogItem[];
 };
 
-type TrackPayload = Record<string, string | number | boolean>;
-type TrackFn = (eventName: string, payload?: TrackPayload) => void;
-
-declare global {
-  interface Window {
-    __hacsTrack?: TrackFn;
-  }
-}
-
 function track(eventName: string, payload: TrackPayload = {}) {
-  window.__hacsTrack?.(eventName, payload);
+  trackEvent(eventName, payload);
 }
 
 function escapeHtml(value: unknown): string {

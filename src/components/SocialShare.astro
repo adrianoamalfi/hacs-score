@@ -1,0 +1,100 @@
+---
+const {
+  url,
+  title,
+  location = 'blog_post'
+} = Astro.props as {
+  url: string;
+  title: string;
+  location?: string;
+};
+
+const encodedUrl = encodeURIComponent(url);
+const encodedTitle = encodeURIComponent(title);
+const xUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+const redditUrl = `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodedTitle}`;
+---
+
+<section class="section-shell p-4 sm:p-5" aria-label="Share this article">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[0.16em] text-base-content/60">Share article</p>
+      <p class="mt-1 text-sm text-base-content/75">Send this post to your team in one click.</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a
+        class="btn btn-sm btn-outline"
+        href={xUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-umami-event="blog_share_x"
+        data-umami-location={location}
+      >
+        X
+      </a>
+      <a
+        class="btn btn-sm btn-outline"
+        href={linkedInUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-umami-event="blog_share_linkedin"
+        data-umami-location={location}
+      >
+        LinkedIn
+      </a>
+      <a
+        class="btn btn-sm btn-outline"
+        href={redditUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-umami-event="blog_share_reddit"
+        data-umami-location={location}
+      >
+        Reddit
+      </a>
+      <button
+        type="button"
+        class="btn btn-sm btn-primary"
+        data-share-copy-url={url}
+        data-umami-event="blog_share_copy"
+        data-umami-location={location}
+      >
+        Copy link
+      </button>
+    </div>
+  </div>
+  <p class="mt-2 text-xs text-base-content/70" data-share-status aria-live="polite"></p>
+</section>
+
+<script is:inline>
+  (() => {
+    document.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const button = target.closest('[data-share-copy-url]');
+      if (!(button instanceof HTMLButtonElement)) return;
+
+      const shareUrl = button.dataset.shareCopyUrl || '';
+      const status = button.closest('section')?.querySelector('[data-share-status]');
+      if (!(status instanceof HTMLElement)) return;
+
+      if (!shareUrl) {
+        status.textContent = 'Unable to copy link.';
+        return;
+      }
+
+      if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+        status.textContent = 'Copy is not available in this browser.';
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        status.textContent = 'Link copied.';
+      } catch {
+        status.textContent = 'Unable to copy link. Please copy from the address bar.';
+      }
+    });
+  })();
+</script>

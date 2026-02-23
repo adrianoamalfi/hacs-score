@@ -253,3 +253,123 @@ export function buildIntegrationSeo(options: IntegrationSeoOptions): SeoMetadata
     jsonLd
   };
 }
+
+type BlogIndexSeoOptions = SharedSeoOptions & {
+  totalPosts: number;
+  totalCategories: number;
+  totalTags: number;
+};
+
+type BlogPostSeoOptions = SharedSeoOptions & {
+  title: string;
+  description: string;
+  slug: string;
+  pubDate: Date;
+  updatedDate?: Date;
+  categories: string[];
+  tags: string[];
+  coverImageUrl?: string;
+};
+
+export function buildBlogIndexSeo(options: BlogIndexSeoOptions): SeoMetadata {
+  const title = clampText('HACS Showcase Blog | Integration Playbooks and Release Notes', MAX_TITLE_LENGTH);
+  const description = clampText(
+    `Editorial notes and practical checklists for Home Assistant integration decisions. ${options.totalPosts} posts across ${options.totalCategories} categories and ${options.totalTags} tags.`,
+    MAX_DESCRIPTION_LENGTH
+  );
+  const canonicalUrl = buildAbsoluteUrl(options.currentUrl.pathname, options.site, options.currentUrl, options.basePath);
+  const ogImageUrl = buildAbsoluteUrl('/og/home.png', options.site, options.currentUrl, options.basePath);
+
+  const jsonLd: JsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    name: 'HACS Showcase Blog',
+    description,
+    url: canonicalUrl,
+    inLanguage: 'en',
+    blogPost: options.totalPosts
+  };
+
+  return {
+    title,
+    description,
+    canonicalUrl,
+    ogType: 'website',
+    ogTitle: title,
+    ogDescription: description,
+    ogUrl: canonicalUrl,
+    ogSiteName: 'HACS Showcase',
+    ogImageUrl,
+    ogImageAlt: 'HACS Showcase blog social preview image.',
+    ogImageType: 'image/png',
+    ogImageWidth: 1200,
+    ogImageHeight: 630,
+    ogLocale: options.ogLocale || 'en_US',
+    twitterCard: 'summary_large_image',
+    twitterTitle: title,
+    twitterDescription: description,
+    twitterImageUrl: ogImageUrl,
+    twitterImageAlt: 'HACS Showcase blog social preview image.',
+    twitterSite: options.twitterSite,
+    robots: 'index,follow,max-image-preview:large',
+    jsonLd
+  };
+}
+
+export function buildBlogPostSeo(options: BlogPostSeoOptions): SeoMetadata {
+  const title = clampText(`${options.title} | HACS Showcase Blog`, MAX_TITLE_LENGTH);
+  const description = clampText(options.description, MAX_DESCRIPTION_LENGTH);
+  const canonicalUrl = buildAbsoluteUrl(
+    `blog/post/${options.slug}/`,
+    options.site,
+    options.currentUrl,
+    options.basePath
+  );
+  const ogImageUrl = options.coverImageUrl || buildAbsoluteUrl('/og/home.png', options.site, options.currentUrl, options.basePath);
+
+  const jsonLd: JsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: options.title,
+    description,
+    datePublished: options.pubDate.toISOString(),
+    dateModified: (options.updatedDate || options.pubDate).toISOString(),
+    author: {
+      '@type': 'Organization',
+      name: 'HACS Showcase'
+    },
+    keywords: [...options.categories, ...options.tags].join(', '),
+    mainEntityOfPage: canonicalUrl
+  };
+
+  return {
+    title,
+    description,
+    canonicalUrl,
+    ogType: 'article',
+    ogTitle: title,
+    ogDescription: description,
+    ogUrl: canonicalUrl,
+    ogSiteName: 'HACS Showcase',
+    ogImageUrl,
+    ogImageAlt: `${options.title} blog post cover image.`,
+    ogImageType: 'image/png',
+    ogImageWidth: 1200,
+    ogImageHeight: 630,
+    ogLocale: options.ogLocale || 'en_US',
+    twitterCard: 'summary_large_image',
+    twitterTitle: title,
+    twitterDescription: description,
+    twitterImageUrl: ogImageUrl,
+    twitterImageAlt: `${options.title} blog post cover image.`,
+    twitterSite: options.twitterSite,
+    robots: 'index,follow,max-image-preview:large',
+    article: {
+      publishedTime: options.pubDate.toISOString(),
+      modifiedTime: (options.updatedDate || options.pubDate).toISOString(),
+      section: options.categories[0],
+      tags: options.tags
+    },
+    jsonLd
+  };
+}

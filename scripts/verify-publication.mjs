@@ -90,6 +90,10 @@ function urlToDistPath(url, basePath) {
   return path.join(distDir, relative);
 }
 
+function extractLocs(xml) {
+  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+}
+
 async function verifyRobots(siteUrl, basePath) {
   const robotsPath = path.join(distDir, 'robots.txt');
   if (!(await fileExists(robotsPath))) {
@@ -105,32 +109,77 @@ async function verifyRobots(siteUrl, basePath) {
 }
 
 async function verifySitemap(siteUrl, basePath) {
-  const sitemapPath = path.join(distDir, 'sitemap.xml');
-  if (!(await fileExists(sitemapPath))) {
+  const sitemapAliasPath = path.join(distDir, 'sitemap.xml');
+  const sitemapIndexPath = path.join(distDir, 'sitemap-index.xml');
+
+  if (!(await fileExists(sitemapAliasPath))) {
     fail('dist/sitemap.xml is missing.');
     return;
   }
+  if (!(await fileExists(sitemapIndexPath))) {
+    fail('dist/sitemap-index.xml is missing.');
+    return;
+  }
 
-  const sitemap = await readFile(sitemapPath, 'utf8');
-  if (sitemap.includes('#')) {
+  const sitemapAlias = await readFile(sitemapAliasPath, 'utf8');
+  const sitemapIndex = await readFile(sitemapIndexPath, 'utf8');
+
+  if (sitemapAlias.includes('#') || sitemapIndex.includes('#')) {
     fail('sitemap.xml contains fragment URLs (#...), which are not canonical.');
   }
 
-  const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-  if (locs.length === 0) {
-    fail('sitemap.xml contains no <loc> entries.');
+  if (!sitemapAlias.includes('<sitemapindex') || !sitemapIndex.includes('<sitemapindex')) {
+    fail('Expected sitemap alias and sitemap-index to contain <sitemapindex>.');
     return;
   }
 
   const expectedOrigin = new URL(siteUrl).origin;
-  for (const loc of locs) {
-    const url = new URL(loc);
-    if (url.origin !== expectedOrigin) {
-      fail(`sitemap URL has wrong origin: ${loc}`);
+  const childSitemapUrls = extractLocs(sitemapIndex);
+
+  if (childSitemapUrls.length === 0) {
+    fail('sitemap-index.xml contains no child sitemap <loc> entries.');
+    return;
+  }
+
+  for (const childUrlRaw of childSitemapUrls) {
+    const childUrl = new URL(childUrlRaw);
+    if (childUrl.origin !== expectedOrigin) {
+      fail(`sitemap URL has wrong origin: ${childUrlRaw}`);
+      continue;
     }
 
-    if (!url.pathname.startsWith(basePath)) {
-      fail(`sitemap URL does not respect BASE_PATH (${basePath}): ${loc}`);
+    if (!childUrl.pathname.startsWith(basePath)) {
+      fail(`sitemap URL does not respect BASE_PATH (${basePath}): ${childUrlRaw}`);
+      continue;
+    }
+
+    const childDistPath = urlToDistPath(childUrl, basePath);
+    if (!childDistPath || !(await fileExists(childDistPath))) {
+      fail(`Child sitemap is missing in dist: ${childUrlRaw}`);
+      continue;
+    }
+
+    const childSitemap = await readFile(childDistPath, 'utf8');
+    if (childSitemap.includes('#')) {
+      fail(`Child sitemap contains fragment URLs: ${childUrlRaw}`);
+      continue;
+    }
+
+    const pageLocs = extractLocs(childSitemap);
+    if (pageLocs.length === 0) {
+      fail(`Child sitemap contains no URL entries: ${childUrlRaw}`);
+      continue;
+    }
+
+    for (const pageLoc of pageLocs) {
+      const pageUrl = new URL(pageLoc);
+      if (pageUrl.origin !== expectedOrigin) {
+        fail(`sitemap URL has wrong origin: ${pageLoc}`);
+      }
+
+      if (!pageUrl.pathname.startsWith(basePath)) {
+        fail(`sitemap URL does not respect BASE_PATH (${basePath}): ${pageLoc}`);
+      }
     }
   }
 }

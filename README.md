@@ -8,9 +8,13 @@ The project includes:
 - Hero section with a distinctive visual identity
 - Featured integrations section
 - Catalog with search, filtering, sorting, confidence filter, and quick presets
+- Blog section with MDX content, categories, tags, and social share actions
 - Score explainability (formula block + inline score help)
 - Side-by-side comparison workflow (up to 3 integrations)
 - Core SEO setup (Open Graph/Twitter meta, canonical, JSON-LD, robots, sitemap)
+- Automatic RSS feed (`/rss.xml`)
+- Theme toggle (dark/light) with persisted user preference
+- Lighthouse CI gate + optional PageSpeed report workflow
 - Improved mobile UX (sticky controls)
 - Baseline accessibility (skip link, focus states, `aria-live`)
 
@@ -19,8 +23,11 @@ The project includes:
 - **Astro 5** (SSG)
 - **Tailwind CSS 4** (utility-first styling)
 - **daisyUI 5** (component library for buttons, cards, form controls, badges)
+- **Astro Content Collections + MDX** (`@astrojs/mdx`)
+- **RSS feed** (`@astrojs/rss`)
+- **Route-based sitemap generation** (`@astrojs/sitemap`)
 - Vanilla JavaScript for client-side catalog filtering
-- Single theme: `hacs-dark` (palette and UI tokens in `src/styles/global.css`)
+- Theme system: `hacs-dark` + `hacs-light` (palette and tokens in `src/styles/global.css`)
 
 ## Requirements
 
@@ -47,8 +54,10 @@ Static output is generated in `dist/`.
 
 - `npm run dev`: start local development
 - `npm run sync:hacs`: download HACS datasets locally
-- `npm run build`: static build
+- `npm run build`: static build (includes sitemap alias post-build)
 - `npm run verify:publication`: validate robots/sitemap/canonical/_headers in `dist`
+- `npm run test:lighthouse`: run Lighthouse CI assertions (requires Chrome)
+- `npm run report:pagespeed`: optional PageSpeed report generation (`PSI_API_KEY` required)
 - `npm run preview`: preview local build
 - `npm run test`: run unit tests (Vitest) for catalog + score model logic
 
@@ -62,7 +71,12 @@ Static output is generated in `dist/`.
 │   └── _headers
 ├── src/
 │   ├── components/
-│   │   └── IntegrationCard.astro
+│   │   ├── IntegrationCard.astro
+│   │   ├── ThemeToggle.astro
+│   │   └── SocialShare.astro
+│   ├── content/
+│   │   ├── config.ts
+│   │   └── blog/
 │   ├── data/
 │   │   └── hacs/
 │   │       ├── integration-data.json
@@ -70,24 +84,31 @@ Static output is generated in `dist/`.
 │   │       └── last-sync.json
 │   ├── lib/
 │   │   ├── score-model.ts
-│   │   └── score-model.test.ts
+│   │   ├── blog.ts
+│   │   └── seo.ts
 │   ├── layouts/
 │   │   └── BaseLayout.astro
 │   ├── pages/
+│   │   ├── blog/
 │   │   ├── index.astro
 │   │   ├── integration/[slug].astro
+│   │   ├── rss.xml.ts
 │   │   ├── robots.txt.ts
-│   │   └── sitemap.xml.ts
 │   ├── scripts/
 │   │   ├── catalog-core.ts
 │   │   ├── catalog.ts
 │   │   ├── catalog.worker.ts
+│   │   ├── analytics.ts
 │   │   └── catalog.test.ts
 │   └── styles/
 │       └── global.css
+├── scripts/
+│   ├── alias-sitemap.mjs
+│   └── pagespeed-report.mjs
 └── .github/workflows/
     ├── ci.yml
-    └── deploy-gh-pages.yml
+    ├── deploy-gh-pages.yml
+    └── lighthouse.yml
 ```
 
 ## Environment configuration
@@ -106,6 +127,9 @@ Variables used for analytics in `src/layouts/BaseLayout.astro`:
   - Default: `https://cloud.umami.is/script.js`
   - Set to your self-hosted endpoint for self-hosted Umami.
 
+Optional variable for PageSpeed reporting:
+- `PSI_API_KEY`: enables `npm run report:pagespeed` and PageSpeed artifact generation in CI.
+
 Optional variables for social metadata:
 - `TWITTER_SITE`: X/Twitter handle to expose in `twitter:site` metadata (example: `@hacs_showcase`)
 - `SEO_OG_LOCALE`: Open Graph locale value (default: `en_US`)
@@ -118,6 +142,9 @@ Integrations data is stored in:
 - `src/data/hacs/last-sync.json` (generated)
 
 Generated files are updated by `npm run sync:hacs`, which is automatically invoked by `npm run build`.
+
+Blog content is managed in `src/content/blog/*.mdx` via the `blog` collection schema in `src/content/config.ts`.
+Each article supports frontmatter fields: `title`, `description`, `pubDate`, `updatedDate`, `categories`, `tags`, `draft`, `cover`, `coverAlt`.
 
 Each integration object supports:
 
@@ -186,7 +213,9 @@ Score Confidence (0–100):
 - Dynamic social PNG generation per page (`/og/home.png`, `/og/integration/:slug.png`)
 - JSON-LD (`CollectionPage`)
 - `src/pages/robots.txt.ts`
-- `src/pages/sitemap.xml.ts`
+- `@astrojs/sitemap` route-based generation (`dist/sitemap-index.xml`)
+- Alias compatibility script for `dist/sitemap.xml` (`scripts/alias-sitemap.mjs`)
+- Blog SEO metadata + `BlogPosting` JSON-LD + RSS feed (`src/pages/rss.xml.ts`)
 
 Note: for correct production SEO, set a real `SITE_URL`.
 
@@ -203,7 +232,9 @@ Note: for correct production SEO, set a real `SITE_URL`.
 - Static rendering with Astro
 - Filtering and sorting via Web Worker (non-blocking UI)
 - Skeleton cards during recalculation
-- `preconnect`/`dns-prefetch` for Google Fonts
+- Local font delivery via `@fontsource` packages
+- Lighthouse CI gate (`>= 90` for performance/accessibility/best-practices/seo)
+- Optional PageSpeed reports for production URLs
 
 ## Deployment
 
@@ -218,6 +249,7 @@ Production publication is standardized for both GitHub Pages and Cloudflare Page
 - Edge header rules via `public/_headers` (cache + security, no redirects).
 - CI validation before deploy (`.github/workflows/ci.yml`).
 - GitHub production deploy workflow (`.github/workflows/deploy-gh-pages.yml`).
+- Lighthouse/PageSpeed quality workflow (`.github/workflows/lighthouse.yml`).
 
 Required environment variables:
 - `SITE_URL`: public canonical site URL
@@ -250,6 +282,8 @@ Guidelines and customization points:
 
 - `npm: command not found`
   - install Node.js + npm and reopen the terminal
+- `test:lighthouse` fails locally with `Chrome installation not found`
+  - install Chrome/Chromium or run Lighthouse checks in CI
 - Broken page on GitHub Pages (asset 404)
   - verify `BASE_PATH`
 - Incorrect canonical/OG values

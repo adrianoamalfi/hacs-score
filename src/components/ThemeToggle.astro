@@ -1,0 +1,92 @@
+---
+const {
+  className = '',
+  location = 'global'
+} = Astro.props as {
+  className?: string;
+  location?: string;
+};
+---
+
+<button
+  type="button"
+  class={`btn btn-sm btn-ghost gap-1.5 ${className}`.trim()}
+  data-theme-toggle
+  aria-label="Toggle color theme"
+  data-umami-event="theme_toggled"
+  data-umami-location={location}
+>
+  <svg data-theme-icon="light" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
+    <circle cx="12" cy="12" r="4" />
+  </svg>
+  <svg data-theme-icon="dark" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 1 0 9.8 9.8Z" />
+  </svg>
+  <span class="hidden sm:inline" data-theme-label>Theme</span>
+</button>
+
+<script is:inline>
+  (() => {
+    const storageKey = 'hacs_theme';
+    const validThemes = new Set(['hacs-dark', 'hacs-light']);
+
+    const resolveTheme = () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      return validThemes.has(current || '') ? current : 'hacs-dark';
+    };
+
+    const updateToggleUi = () => {
+      const currentTheme = resolveTheme();
+      const nextTheme = currentTheme === 'hacs-dark' ? 'hacs-light' : 'hacs-dark';
+
+      document.querySelectorAll('[data-theme-toggle]').forEach((element) => {
+        const lightIcon = element.querySelector('[data-theme-icon="light"]');
+        const darkIcon = element.querySelector('[data-theme-icon="dark"]');
+        const label = element.querySelector('[data-theme-label]');
+
+        if (lightIcon) {
+          lightIcon.classList.toggle('hidden', currentTheme !== 'hacs-light');
+        }
+        if (darkIcon) {
+          darkIcon.classList.toggle('hidden', currentTheme !== 'hacs-dark');
+        }
+        if (label) {
+          label.textContent = nextTheme === 'hacs-light' ? 'Light mode' : 'Dark mode';
+        }
+      });
+    };
+
+    const applyTheme = (theme) => {
+      const normalized = validThemes.has(theme) ? theme : 'hacs-dark';
+      document.documentElement.setAttribute('data-theme', normalized);
+      try {
+        localStorage.setItem(storageKey, normalized);
+      } catch {
+        // Ignore storage failures.
+      }
+      updateToggleUi();
+    };
+
+    document.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const toggle = target.closest('[data-theme-toggle]');
+      if (!(toggle instanceof HTMLButtonElement)) return;
+
+      const currentTheme = resolveTheme();
+      const nextTheme = currentTheme === 'hacs-dark' ? 'hacs-light' : 'hacs-dark';
+      applyTheme(nextTheme);
+    });
+
+    window.addEventListener('storage', (event) => {
+      if (event.key !== storageKey) return;
+      if (!event.newValue) return;
+      if (!validThemes.has(event.newValue)) return;
+      document.documentElement.setAttribute('data-theme', event.newValue);
+      updateToggleUi();
+    });
+
+    updateToggleUi();
+  })();
+</script>

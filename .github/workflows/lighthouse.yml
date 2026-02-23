@@ -1,0 +1,59 @@
+name: Lighthouse and PageSpeed
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    env:
+      SITE_URL: ${{ vars.SITE_URL || 'https://example.com' }}
+      BASE_PATH: ${{ vars.BASE_PATH || '/' }}
+      WEBSITE_ID: ${{ vars.WEBSITE_ID || '' }}
+      UMAMI_SCRIPT_URL: ${{ vars.UMAMI_SCRIPT_URL || '' }}
+      PSI_API_KEY: ${{ secrets.PSI_API_KEY || '' }}
+      HACS_FETCH_TIMEOUT_MS: "30000"
+      HACS_FETCH_STRICT: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Build site
+        run: npm run build
+
+      - name: Lighthouse CI
+        run: npm run test:lighthouse
+
+      - name: PageSpeed report (optional)
+        run: npm run report:pagespeed
+
+      - name: Upload Lighthouse artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouseci
+          path: .lighthouseci
+          if-no-files-found: ignore
+
+      - name: Upload PageSpeed reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pagespeed-report
+          path: reports/pagespeed
+          if-no-files-found: ignore

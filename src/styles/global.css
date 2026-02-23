@@ -1,12 +1,16 @@
+@import "@fontsource-variable/space-grotesk/index.css";
+@import "@fontsource/syne/600.css";
+@import "@fontsource/syne/700.css";
+@import "@fontsource/syne/800.css";
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: hacs-dark --default;
+  themes: hacs-dark --default, hacs-light;
 }
 
 @plugin "daisyui/theme" {
   name: "hacs-dark";
   default: false;
-  prefersdark: false;
+  prefersdark: true;
   color-scheme: dark;
 
   --color-base-100: oklch(21% 0.02 252);
@@ -42,6 +46,45 @@
   --noise: 0;
 }
 
+@plugin "daisyui/theme" {
+  name: "hacs-light";
+  default: false;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: oklch(98% 0.005 250);
+  --color-base-200: oklch(95% 0.008 250);
+  --color-base-300: oklch(90% 0.015 250);
+  --color-base-content: oklch(24% 0.025 252);
+
+  --color-primary: oklch(55% 0.18 245);
+  --color-primary-content: oklch(97% 0.01 250);
+  --color-secondary: oklch(58% 0.16 188);
+  --color-secondary-content: oklch(97% 0.01 250);
+  --color-accent: oklch(62% 0.18 58);
+  --color-accent-content: oklch(16% 0.03 58);
+
+  --color-neutral: oklch(92% 0.01 252);
+  --color-neutral-content: oklch(24% 0.025 252);
+  --color-info: oklch(60% 0.16 235);
+  --color-info-content: oklch(97% 0.01 250);
+  --color-success: oklch(58% 0.16 156);
+  --color-success-content: oklch(97% 0.01 250);
+  --color-warning: oklch(70% 0.16 80);
+  --color-warning-content: oklch(20% 0.03 80);
+  --color-error: oklch(58% 0.2 26);
+  --color-error-content: oklch(97% 0.01 250);
+
+  --radius-selector: 0.75rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -51,10 +94,16 @@
     font-family: "Space Grotesk", sans-serif;
     @apply text-base-content antialiased;
     background:
-      radial-gradient(circle at 12% 10%, rgba(27, 114, 245, 0.25) 0%, transparent 36%),
-      radial-gradient(circle at 88% 16%, rgba(65, 186, 189, 0.22) 0%, transparent 33%),
-      radial-gradient(circle at 50% 86%, rgba(227, 145, 87, 0.16) 0%, transparent 26%),
-      linear-gradient(180deg, #0f1a2a 0%, #102132 52%, #13283b 100%);
+      radial-gradient(circle at 12% 10%, color-mix(in oklab, var(--color-primary) 28%, transparent) 0%, transparent 36%),
+      radial-gradient(circle at 88% 16%, color-mix(in oklab, var(--color-secondary) 26%, transparent) 0%, transparent 33%),
+      radial-gradient(circle at 50% 86%, color-mix(in oklab, var(--color-accent) 20%, transparent) 0%, transparent 26%),
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-base-100) 94%, var(--color-primary) 6%) 0%,
+        color-mix(in oklab, var(--color-base-100) 89%, var(--color-primary) 11%) 52%,
+        color-mix(in oklab, var(--color-base-200) 92%, var(--color-secondary) 8%) 100%
+      );
+    background-attachment: fixed;
   }
 
   h1,
@@ -120,6 +169,40 @@
     @apply absolute inset-0 -translate-x-full;
     background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-base-300) 65%, white) 50%, transparent);
     animation: shimmer 1.2s infinite;
+  }
+
+  .blog-prose h2,
+  .blog-prose h3 {
+    @apply mt-6 text-balance;
+  }
+
+  .blog-prose h2 {
+    @apply text-2xl font-bold;
+  }
+
+  .blog-prose h3 {
+    @apply text-xl font-semibold;
+  }
+
+  .blog-prose p {
+    @apply mt-3 leading-7 text-base-content/85;
+  }
+
+  .blog-prose ul,
+  .blog-prose ol {
+    @apply mt-3 space-y-2 pl-5 text-base-content/85;
+  }
+
+  .blog-prose li {
+    @apply leading-7;
+  }
+
+  .blog-prose strong {
+    @apply font-semibold text-base-content;
+  }
+
+  .blog-prose code {
+    @apply rounded bg-base-200 px-1.5 py-0.5 text-sm;
   }
 }
 

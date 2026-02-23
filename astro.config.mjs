@@ -1,4 +1,6 @@
 import { defineConfig } from 'astro/config';
+import mdx from '@astrojs/mdx';
+import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 
 function normalizeBasePath(basePath) {
@@ -20,6 +22,7 @@ export default defineConfig({
   output: 'static',
   site: process.env.SITE_URL || 'https://example.com',
   base: normalizeBasePath(process.env.BASE_PATH || getDefaultBasePath()),
+  integrations: [mdx(), sitemap()],
   vite: {
     plugins: [tailwindcss()]
   }

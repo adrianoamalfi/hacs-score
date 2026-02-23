@@ -1,0 +1,57 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import BlogPostCard from '../../../components/BlogPostCard.astro';
+import ThemeToggle from '../../../components/ThemeToggle.astro';
+import { withBasePath } from '../../../lib/base-path';
+import { buildBlogIndexSeo } from '../../../lib/seo';
+import { buildTaxonomyBuckets, getPublishedBlogPosts } from '../../../lib/blog';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedBlogPosts();
+  const tags = buildTaxonomyBuckets(posts, 'tags');
+
+  return tags.map((tag) => ({
+    params: { slug: tag.slug },
+    props: {
+      tag
+    }
+  }));
+}
+
+const { tag } = Astro.props as {
+  tag: {
+    label: string;
+    slug: string;
+    count: number;
+    posts: Awaited<ReturnType<typeof getPublishedBlogPosts>>;
+  };
+};
+
+const seo = buildBlogIndexSeo({
+  site: Astro.site,
+  currentUrl: Astro.url,
+  basePath: import.meta.env.BASE_URL,
+  totalPosts: tag.posts.length,
+  totalCategories: 0,
+  totalTags: 1,
+  twitterSite: process.env.TWITTER_SITE?.trim(),
+  ogLocale: process.env.SEO_OG_LOCALE?.trim() || 'en_US'
+});
+---
+
+<BaseLayout seo={{ ...seo, title: `#${tag.label} Articles | HACS Showcase Blog`, ogTitle: `#${tag.label} Articles | HACS Showcase Blog`, twitterTitle: `#${tag.label} Articles | HACS Showcase Blog` }}>
+  <main class="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+    <header class="glass-panel p-4 sm:p-5">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <a class="btn btn-sm btn-ghost" href={withBasePath('blog/', import.meta.env.BASE_URL)}>All posts</a>
+        <ThemeToggle location="blog_tag" />
+      </div>
+      <h1 class="mt-4 text-3xl font-extrabold sm:text-4xl">Tag: #{tag.label}</h1>
+      <p class="mt-2 text-sm text-base-content/75">{tag.count} article{tag.count === 1 ? '' : 's'}.</p>
+    </header>
+
+    <section class="grid gap-4 md:grid-cols-2">
+      {tag.posts.map((post) => <BlogPostCard post={post} basePath={import.meta.env.BASE_URL} />)}
+    </section>
+  </main>
+</BaseLayout>

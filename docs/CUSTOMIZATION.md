@@ -21,11 +21,20 @@ File: `src/pages/index.astro`
 
 - Hero: headline, copy, CTA, stats
 - Sections: featured + catalog
+- Top navigation: blog access + theme toggle
 - Catalog controls: search/filter/sort + confidence
 - Score explainability block
 - Compare drawer + modal
 - Minimal script: initialize catalog by importing `initCatalog`
 - Category mapping: `toCategory()` function
+
+Blog pages:
+- `src/pages/blog/index.astro`
+- `src/pages/blog/[...page].astro`
+- `src/pages/blog/post/[slug].astro`
+- `src/pages/blog/category/[slug].astro`
+- `src/pages/blog/tag/[slug].astro`
+- `src/pages/rss.xml.ts`
 
 File: `src/scripts/catalog.ts`
 - UI init: `initCatalog()` (DOM wiring, render, load more, reset, presets, compare)
@@ -66,8 +75,12 @@ File: `src/pages/index.astro`
 File: `src/pages/robots.txt.ts`
 - Dynamic crawling rules + sitemap URL generation per deployment domain/base path
 
-File: `src/pages/sitemap.xml.ts`
-- Sitemap endpoint (includes homepage + dynamic detail pages)
+Sitemap generation:
+- `@astrojs/sitemap` integration in `astro.config.mjs`
+- Post-build alias script `scripts/alias-sitemap.mjs` to keep `sitemap.xml` compatibility
+
+File: `src/lib/seo.ts`
+- Shared SEO builders for home, integration, blog index, and blog post routes
 
 ## 5) Design system
 
@@ -75,10 +88,11 @@ File: `src/styles/global.css`
 
 Main points:
 - `daisyui` plugin enabled on Tailwind
-- Single daisyUI theme `hacs-dark` with color/radius tokens in `@plugin "daisyui/theme"`
+- daisyUI themes `hacs-dark` and `hacs-light` with shared tokens
 - Base typography + gradient background in `@layer base`
 - daisyUI components (`btn`, `card`, `input/select`, `badge`, `checkbox`)
 - Tailwind utility classes used directly in Astro templates
+- Local fonts via `@fontsource-variable/space-grotesk` and `@fontsource/syne`
 
 ## 6) Mobile UX
 
@@ -114,6 +128,7 @@ Coverage:
 - Catalog pure functions and URL state behavior
 - Shared score model helpers and formula boundaries
 - Run with `npm run test`
+- Lighthouse quality gate via `npm run test:lighthouse` (`.lighthouserc.json`)
 
 ## 9) Detail pages
 
@@ -121,3 +136,14 @@ File: `src/pages/integration/[slug].astro`
 - Static generation of one page per integration
 - Uses real HACS data via `src/data/hacs/load.ts`
 - Breakdown values computed with shared score model helpers
+
+## 10) Analytics and instrumentation
+
+Files:
+- `src/scripts/analytics.ts`
+- `src/layouts/BaseLayout.astro`
+
+Behavior:
+- Defines `window.__hacsTrack` as a safe noop when Umami is disabled
+- Loads Umami only in production when `WEBSITE_ID` is set
+- Tracks explicit `data-umami-event` interactions and outbound clicks

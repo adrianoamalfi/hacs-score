@@ -54,11 +54,8 @@ jobs:
             exit 1
           fi
 
-      - name: Sync HACS datasets
-        run: npm run sync:hacs
-
       - name: Build site
-        run: npx astro build
+        run: npm run build
 
       - name: Verify publication output
         run: npm run verify:publication

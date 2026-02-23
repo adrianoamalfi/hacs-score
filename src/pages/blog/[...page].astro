@@ -1,0 +1,89 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BlogPostCard from '../../components/BlogPostCard.astro';
+import ThemeToggle from '../../components/ThemeToggle.astro';
+import { withBasePath } from '../../lib/base-path';
+import { buildBlogIndexSeo } from '../../lib/seo';
+import { getPublishedBlogPosts } from '../../lib/blog';
+
+export async function getStaticPaths() {
+  const pageSize = 10;
+  const posts = await getPublishedBlogPosts();
+  const totalPages = Math.ceil(posts.length / pageSize);
+  const paths = [];
+
+  for (let page = 2; page <= totalPages; page += 1) {
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    paths.push({
+      params: { page: String(page) },
+      props: {
+        pagePosts: posts.slice(start, end),
+        pageNumber: page,
+        totalPages,
+        totalPosts: posts.length
+      }
+    });
+  }
+
+  return paths;
+}
+
+const { pagePosts, pageNumber, totalPages, totalPosts } = Astro.props as {
+  pagePosts: Awaited<ReturnType<typeof getPublishedBlogPosts>>;
+  pageNumber: number;
+  totalPages: number;
+  totalPosts: number;
+};
+
+const baseSeo = buildBlogIndexSeo({
+  site: Astro.site,
+  currentUrl: Astro.url,
+  basePath: import.meta.env.BASE_URL,
+  totalPosts,
+  totalCategories: 0,
+  totalTags: 0,
+  twitterSite: process.env.TWITTER_SITE?.trim(),
+  ogLocale: process.env.SEO_OG_LOCALE?.trim() || 'en_US'
+});
+
+const seo =
+  pageNumber > 1
+    ? {
+        ...baseSeo,
+        title: `${baseSeo.title} | Page ${pageNumber}`,
+        ogTitle: `${baseSeo.ogTitle} | Page ${pageNumber}`,
+        twitterTitle: `${baseSeo.twitterTitle} | Page ${pageNumber}`
+      }
+    : baseSeo;
+
+const prevHref =
+  pageNumber <= 2
+    ? withBasePath('blog/', import.meta.env.BASE_URL)
+    : withBasePath(`blog/${String(pageNumber - 1)}/`, import.meta.env.BASE_URL);
+const nextHref = withBasePath(`blog/${String(pageNumber + 1)}/`, import.meta.env.BASE_URL);
+---
+
+<BaseLayout seo={seo}>
+  <main class="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+    <header class="glass-panel p-4 sm:p-5">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <a class="btn btn-sm btn-ghost" href={withBasePath('blog/', import.meta.env.BASE_URL)}>Blog home</a>
+          <span class="badge badge-outline">Page {pageNumber} of {totalPages}</span>
+        </div>
+        <ThemeToggle location="blog_page" />
+      </div>
+      <h1 class="mt-4 text-3xl font-extrabold sm:text-4xl">Blog archive</h1>
+    </header>
+
+    <section class="grid gap-4 md:grid-cols-2">
+      {pagePosts.map((post) => <BlogPostCard post={post} basePath={import.meta.env.BASE_URL} />)}
+    </section>
+
+    <nav class="flex items-center justify-between gap-2" aria-label="Blog pagination">
+      <a class="btn btn-sm btn-outline" href={prevHref}>Newer posts</a>
+      {pageNumber < totalPages ? <a class="btn btn-sm btn-primary" href={nextHref}>Older posts</a> : <span></span>}
+    </nav>
+  </main>
+</BaseLayout>
