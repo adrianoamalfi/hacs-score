@@ -49,6 +49,47 @@ function expectedSitemapUrl(siteUrl, basePath) {
   return new URL(`${basePath}sitemap.xml`, siteUrl).toString();
 }
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getMetaContent(html, attrName, attrValue) {
+  const pattern = new RegExp(
+    `<meta\\s+[^>]*${attrName}=["']${escapeRegex(attrValue)}["'][^>]*content=["']([^"']+)["'][^>]*>|<meta\\s+[^>]*content=["']([^"']+)["'][^>]*${attrName}=["']${escapeRegex(attrValue)}["'][^>]*>`,
+    'i'
+  );
+  const match = html.match(pattern);
+  return match?.[1] || match?.[2] || null;
+}
+
+function parsePngMetadata(buffer) {
+  if (buffer.length < 24) return null;
+  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+
+  for (let i = 0; i < signature.length; i += 1) {
+    if (buffer[i] !== signature[i]) return null;
+  }
+
+  const ihdrName = buffer.subarray(12, 16).toString('ascii');
+  if (ihdrName !== 'IHDR') return null;
+
+  const width = buffer.readUInt32BE(16);
+  const height = buffer.readUInt32BE(20);
+  return { width, height };
+}
+
+function urlToDistPath(url, basePath) {
+  const normalizedBase = normalizeBasePath(basePath);
+  const pathname = url.pathname;
+
+  if (!pathname.startsWith(normalizedBase)) {
+    return null;
+  }
+
+  const relative = pathname.slice(normalizedBase.length).replace(/^\/+/, '');
+  return path.join(distDir, relative);
+}
+
 async function verifyRobots(siteUrl, basePath) {
   const robotsPath = path.join(distDir, 'robots.txt');
   if (!(await fileExists(robotsPath))) {
@@ -121,6 +162,91 @@ async function verifyCanonical(siteUrl, basePath) {
   }
 }
 
+async function verifySocialMetadata(siteUrl, basePath) {
+  const htmlFiles = await walkHtmlFiles(distDir);
+  if (htmlFiles.length === 0) return;
+
+  const expectedOrigin = new URL(siteUrl).origin;
+  const imageUrls = new Set();
+
+  for (const htmlPath of htmlFiles) {
+    const relativePath = path.relative(rootDir, htmlPath);
+    const html = await readFile(htmlPath, 'utf8');
+
+    const ogImage = getMetaContent(html, 'property', 'og:image');
+    const twitterImage = getMetaContent(html, 'name', 'twitter:image');
+    const ogImageType = getMetaContent(html, 'property', 'og:image:type');
+    const ogImageWidth = getMetaContent(html, 'property', 'og:image:width');
+    const ogImageHeight = getMetaContent(html, 'property', 'og:image:height');
+
+    if (!ogImage) {
+      fail(`Missing og:image in ${relativePath}`);
+      continue;
+    }
+    if (!twitterImage) {
+      fail(`Missing twitter:image in ${relativePath}`);
+      continue;
+    }
+
+    for (const rawUrl of [ogImage, twitterImage]) {
+      let parsed;
+      try {
+        parsed = new URL(rawUrl);
+      } catch {
+        fail(`Invalid social image URL in ${relativePath}: ${rawUrl}`);
+        continue;
+      }
+
+      if (parsed.origin !== expectedOrigin) {
+        fail(`Social image URL origin mismatch in ${relativePath}: ${rawUrl}`);
+      }
+      if (!parsed.pathname.startsWith(basePath)) {
+        fail(`Social image URL does not respect BASE_PATH (${basePath}) in ${relativePath}: ${rawUrl}`);
+      }
+
+      imageUrls.add(parsed.toString());
+    }
+
+    if (ogImageType && ogImageType !== 'image/png') {
+      fail(`og:image:type must be image/png in ${relativePath}`);
+    }
+    if (ogImageWidth && ogImageWidth !== '1200') {
+      fail(`og:image:width must be 1200 in ${relativePath}`);
+    }
+    if (ogImageHeight && ogImageHeight !== '630') {
+      fail(`og:image:height must be 630 in ${relativePath}`);
+    }
+  }
+
+  for (const rawUrl of imageUrls) {
+    const parsedUrl = new URL(rawUrl);
+    const filePath = urlToDistPath(parsedUrl, basePath);
+
+    if (!filePath) {
+      fail(`Cannot map social image URL to dist path: ${rawUrl}`);
+      continue;
+    }
+
+    if (!(await fileExists(filePath))) {
+      fail(`Missing social image file for URL ${rawUrl} (expected ${path.relative(rootDir, filePath)})`);
+      continue;
+    }
+
+    const data = await readFile(filePath);
+    const pngInfo = parsePngMetadata(data);
+    if (!pngInfo) {
+      fail(`Social image is not a valid PNG: ${path.relative(rootDir, filePath)}`);
+      continue;
+    }
+
+    if (pngInfo.width !== 1200 || pngInfo.height !== 630) {
+      fail(
+        `Social image dimensions must be 1200x630 in ${path.relative(rootDir, filePath)} (found ${pngInfo.width}x${pngInfo.height})`
+      );
+    }
+  }
+}
+
 async function verifyHeaders() {
   const headersPath = path.join(distDir, '_headers');
   if (!(await fileExists(headersPath))) {
@@ -157,6 +283,7 @@ async function main() {
   await verifyRobots(siteUrl, basePath);
   await verifySitemap(siteUrl, basePath);
   await verifyCanonical(siteUrl, basePath);
+  await verifySocialMetadata(siteUrl, basePath);
   await verifyHeaders();
 
   if (!process.exitCode) {
@@ -168,4 +295,3 @@ main().catch((error) => {
   console.error(`[verify:publication] Unexpected error: ${error.message}`);
   process.exit(1);
 });
-

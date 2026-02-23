@@ -15,6 +15,8 @@ Publish and validation workflows:
    - `BASE_PATH`: `/` (user/org pages) or `/<repo>/` (project pages)
    - `WEBSITE_ID`: Umami website ID (optional, enables tracking in production)
    - `UMAMI_SCRIPT_URL`: optional script URL (default `https://cloud.umami.is/script.js`)
+   - `TWITTER_SITE`: optional X/Twitter handle for social cards
+   - `SEO_OG_LOCALE`: optional Open Graph locale (default `en_US`)
 4. Every push to `main` triggers automatic build and deploy.
 
 ### Build settings used by the workflow
@@ -41,6 +43,8 @@ Publish and validation workflows:
    - `HACS_FETCH_TIMEOUT_MS`: `30000`
    - `WEBSITE_ID`: Umami website ID (optional)
    - `UMAMI_SCRIPT_URL`: optional script URL (default `https://cloud.umami.is/script.js`)
+   - `TWITTER_SITE`: optional X/Twitter handle for social cards
+   - `SEO_OG_LOCALE`: optional Open Graph locale (default `en_US`)
 4. Deploy.
 
 ## Cloudflare Workers (Wrangler assets deploy)
@@ -59,6 +63,8 @@ Use this mode when your platform runs an explicit deploy command like `npx wrang
    - `HACS_FETCH_TIMEOUT_MS`: `30000`
    - `WEBSITE_ID`: Umami website ID (optional)
    - `UMAMI_SCRIPT_URL`: optional script URL (default `https://cloud.umami.is/script.js`)
+   - `TWITTER_SITE`: optional X/Twitter handle for social cards
+   - `SEO_OG_LOCALE`: optional Open Graph locale (default `en_US`)
 
 This repo includes `wrangler.jsonc` with `assets.directory: "./dist"`, so Wrangler publishes the static build output.
 

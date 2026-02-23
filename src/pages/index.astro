@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import IntegrationCard from '../components/IntegrationCard.astro';
 import { loadIntegrations, loadLastSync } from '../data/hacs/load';
 import { SCORE_WEIGHTS } from '../lib/score-model';
+import { buildHomeSeo } from '../lib/seo';
 
 const integrations = await loadIntegrations();
 const lastSync = await loadLastSync();
@@ -24,27 +25,19 @@ const syncedAtLabel = lastSync?.generatedAt
     })
   : 'Not synced yet';
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'CollectionPage',
-  name: 'HACS Scoreboard',
-  description:
-    'HACS Scoreboard is an analysis and decision layer built on HACS data, with one central KPI: HACS Score.',
-  inLanguage: 'en',
-  numberOfItems: integrations.length,
-  dateModified: lastSync?.generatedAt || undefined,
-  about: {
-    '@type': 'SoftwareApplication',
-    name: 'HACS',
-    applicationCategory: 'Home Automation'
-  }
-};
+const seo = buildHomeSeo({
+  site: Astro.site,
+  currentUrl: Astro.url,
+  basePath: import.meta.env.BASE_URL,
+  totalIntegrations: integrations.length,
+  topCohortCount: featuredIntegrations.length,
+  generatedAt: lastSync?.generatedAt,
+  twitterSite: process.env.TWITTER_SITE?.trim(),
+  ogLocale: process.env.SEO_OG_LOCALE?.trim() || 'en_US'
+});
 ---
 
-<BaseLayout
-  title="HACS Scoreboard"
-  description="HACS Scoreboard is an analysis and decision layer built on HACS data, with one central KPI: HACS Score."
->
+<BaseLayout seo={seo}>
   <a
     href="#content"
     class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-base-100 focus:px-3 focus:py-2 focus:shadow"
@@ -354,7 +347,6 @@ const jsonLd = {
     </div>
   </footer>
 
-  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
   <script>
     const catalogDataUrl =
       document.getElementById('catalog')?.getAttribute('data-catalog-url') || new URL('api/catalog.json', window.location.href).pathname;

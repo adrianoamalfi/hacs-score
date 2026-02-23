@@ -1,13 +1,61 @@
 ---
 import '../styles/global.css';
+import type { SeoMetadata } from '../lib/seo';
+import { buildAbsoluteUrl } from '../lib/seo';
+
+const defaultDescription =
+  'Showcase standout HACS integrations for Home Assistant with featured picks and searchable catalog.';
 
 const {
   title = 'HACS Showcase',
-  description = 'Showcase standout HACS integrations for Home Assistant with featured picks and searchable catalog.'
-} = Astro.props;
+  description = defaultDescription,
+  seo
+} = Astro.props as {
+  title?: string;
+  description?: string;
+  seo?: SeoMetadata;
+};
 
-const canonical = new URL(Astro.url.pathname, Astro.site);
-const ogTitle = `${title} | HACS`;
+const canonicalUrl =
+  seo?.canonicalUrl || buildAbsoluteUrl(Astro.url.pathname, Astro.site, Astro.url, import.meta.env.BASE_URL);
+
+const resolvedTitle = seo?.title || title;
+const resolvedDescription = seo?.description || description;
+const defaultOgImageUrl = buildAbsoluteUrl('/og/home.png', Astro.site, Astro.url, import.meta.env.BASE_URL);
+const ogImageUrl = seo?.ogImageUrl || defaultOgImageUrl;
+
+const resolvedSeo: SeoMetadata = {
+  title: resolvedTitle,
+  description: resolvedDescription,
+  canonicalUrl,
+  ogType: seo?.ogType || 'website',
+  ogTitle: seo?.ogTitle || resolvedTitle,
+  ogDescription: seo?.ogDescription || resolvedDescription,
+  ogUrl: seo?.ogUrl || canonicalUrl,
+  ogSiteName: seo?.ogSiteName || 'HACS Showcase',
+  ogImageUrl,
+  ogImageAlt: seo?.ogImageAlt || 'HACS Showcase social preview image.',
+  ogImageType: seo?.ogImageType || 'image/png',
+  ogImageWidth: seo?.ogImageWidth || 1200,
+  ogImageHeight: seo?.ogImageHeight || 630,
+  ogLocale: seo?.ogLocale || process.env.SEO_OG_LOCALE?.trim() || 'en_US',
+  twitterCard: seo?.twitterCard || 'summary_large_image',
+  twitterTitle: seo?.twitterTitle || resolvedTitle,
+  twitterDescription: seo?.twitterDescription || resolvedDescription,
+  twitterImageUrl: seo?.twitterImageUrl || ogImageUrl,
+  twitterImageAlt: seo?.twitterImageAlt || seo?.ogImageAlt || 'HACS Showcase social preview image.',
+  twitterSite: seo?.twitterSite || process.env.TWITTER_SITE?.trim() || undefined,
+  robots: seo?.robots,
+  article: seo?.article,
+  jsonLd: seo?.jsonLd
+};
+
+const jsonLdScripts = Array.isArray(resolvedSeo.jsonLd)
+  ? resolvedSeo.jsonLd
+  : resolvedSeo.jsonLd
+    ? [resolvedSeo.jsonLd]
+    : [];
+
 const umamiWebsiteId = process.env.WEBSITE_ID?.trim();
 const umamiScriptUrl = process.env.UMAMI_SCRIPT_URL?.trim() || 'https://cloud.umami.is/script.js';
 const shouldLoadUmami = import.meta.env.PROD && Boolean(umamiWebsiteId);
@@ -19,20 +67,47 @@ const shouldLoadUmami = import.meta.env.PROD && Boolean(umamiWebsiteId);
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#102132" />
-    <title>{title}</title>
+    <title>{resolvedSeo.title}</title>
 
-    <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
+    <meta name="description" content={resolvedSeo.description} />
+    {resolvedSeo.robots && <meta name="robots" content={resolvedSeo.robots} />}
+    <link rel="canonical" href={resolvedSeo.canonicalUrl} />
 
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content={ogTitle} />
-    <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
-    <meta property="og:site_name" content="HACS Showcase" />
+    <meta property="og:type" content={resolvedSeo.ogType} />
+    <meta property="og:title" content={resolvedSeo.ogTitle} />
+    <meta property="og:description" content={resolvedSeo.ogDescription} />
+    <meta property="og:url" content={resolvedSeo.ogUrl} />
+    <meta property="og:site_name" content={resolvedSeo.ogSiteName} />
+    <meta property="og:locale" content={resolvedSeo.ogLocale} />
+    <meta property="og:image" content={resolvedSeo.ogImageUrl} />
+    <meta property="og:image:secure_url" content={resolvedSeo.ogImageUrl} />
+    <meta property="og:image:type" content={resolvedSeo.ogImageType} />
+    <meta property="og:image:width" content={String(resolvedSeo.ogImageWidth)} />
+    <meta property="og:image:height" content={String(resolvedSeo.ogImageHeight)} />
+    <meta property="og:image:alt" content={resolvedSeo.ogImageAlt} />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={ogTitle} />
-    <meta name="twitter:description" content={description} />
+    {resolvedSeo.ogType === 'article' && resolvedSeo.article?.publishedTime && (
+      <meta property="article:published_time" content={resolvedSeo.article.publishedTime} />
+    )}
+    {resolvedSeo.ogType === 'article' && resolvedSeo.article?.modifiedTime && (
+      <meta property="article:modified_time" content={resolvedSeo.article.modifiedTime} />
+    )}
+    {resolvedSeo.ogType === 'article' && resolvedSeo.article?.section && (
+      <meta property="article:section" content={resolvedSeo.article.section} />
+    )}
+    {resolvedSeo.ogType === 'article' &&
+      resolvedSeo.article?.tags?.map((tag) => <meta property="article:tag" content={tag} />)}
+
+    <meta name="twitter:card" content={resolvedSeo.twitterCard} />
+    <meta name="twitter:title" content={resolvedSeo.twitterTitle} />
+    <meta name="twitter:description" content={resolvedSeo.twitterDescription} />
+    <meta name="twitter:image" content={resolvedSeo.twitterImageUrl} />
+    <meta name="twitter:image:alt" content={resolvedSeo.twitterImageAlt} />
+    {resolvedSeo.twitterSite && <meta name="twitter:site" content={resolvedSeo.twitterSite} />}
+
+    {jsonLdScripts.map((entry) => (
+      <script type="application/ld+json" set:html={JSON.stringify(entry)}></script>
+    ))}
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

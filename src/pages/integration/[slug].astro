@@ -7,6 +7,7 @@ import {
   popularitySignalsFromStars,
   SCORE_WEIGHTS
 } from '../../lib/score-model';
+import { buildIntegrationSeo } from '../../lib/seo';
 
 const integrations = await loadIntegrations();
 
@@ -68,11 +69,21 @@ const maintenanceContribution = Math.round(maintenance * SCORE_WEIGHTS.maintenan
 
 const issueLabel = integration.openIssues <= 10 ? 'Low issue pressure' : integration.openIssues <= 40 ? 'Moderate issue pressure' : 'High issue pressure';
 
-const pageTitle = `${integration.name} | HACS Scoreboard`;
-const pageDescription = `${integration.name} has a HACS Score of ${integration.recommendedScore}. Review quality, freshness, and maintenance signal for ${integration.repo}.`;
+const seo = buildIntegrationSeo({
+  site: Astro.site,
+  currentUrl: Astro.url,
+  basePath: import.meta.env.BASE_URL,
+  integration,
+  overallRank,
+  totalCount,
+  categoryRank,
+  categoryCount,
+  twitterSite: process.env.TWITTER_SITE?.trim(),
+  ogLocale: process.env.SEO_OG_LOCALE?.trim() || 'en_US'
+});
 ---
 
-<BaseLayout title={pageTitle} description={pageDescription}>
+<BaseLayout seo={seo}>
   <main class="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <a

@@ -106,6 +106,10 @@ Variables used for analytics in `src/layouts/BaseLayout.astro`:
   - Default: `https://cloud.umami.is/script.js`
   - Set to your self-hosted endpoint for self-hosted Umami.
 
+Optional variables for social metadata:
+- `TWITTER_SITE`: X/Twitter handle to expose in `twitter:site` metadata (example: `@hacs_showcase`)
+- `SEO_OG_LOCALE`: Open Graph locale value (default: `en_US`)
+
 ## Content management
 
 Integrations data is stored in:
@@ -178,6 +182,7 @@ Score Confidence (0–100):
 - Canonical URL
 - Open Graph tags
 - Twitter tags
+- Dynamic social PNG generation per page (`/og/home.png`, `/og/integration/:slug.png`)
 - JSON-LD (`CollectionPage`)
 - `src/pages/robots.txt.ts`
 - `src/pages/sitemap.xml.ts`
