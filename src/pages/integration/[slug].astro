@@ -8,6 +8,7 @@ import {
   SCORE_WEIGHTS
 } from '../../lib/score-model';
 import { buildIntegrationSeo } from '../../lib/seo';
+import { withBasePath } from '../../lib/base-path';
 
 const integrations = await loadIntegrations();
 
@@ -87,7 +88,7 @@ const seo = buildIntegrationSeo({
   <main class="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <a
-        href="/"
+        href={withBasePath('/', import.meta.env.BASE_URL)}
         class="btn btn-ghost btn-sm gap-1.5"
         data-umami-event="integration_back_to_ranking"
         data-umami-slug={integration.slug}

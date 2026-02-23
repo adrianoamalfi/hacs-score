@@ -5,6 +5,7 @@ import {
   recommendedScoreFromSignals,
   scoreConfidenceFromSignals
 } from '../../lib/score-model';
+import { withBasePath } from '../../lib/base-path';
 import integrationDataJson from './integration-data.json';
 import repositoriesJson from './integration-repositories.json';
 import lastSyncJson from './last-sync.json';
@@ -97,7 +98,7 @@ export async function loadIntegrations(nowTs = Date.now()): Promise<HacsIntegrat
       return {
         id: fullName,
         slug,
-        detailsPath: `/integration/${slug}/`,
+        detailsPath: withBasePath(`integration/${slug}/`, import.meta.env.BASE_URL),
         name: entry.manifest?.name || entry.manifest_name || repoName,
         author,
         repo: fullName,
