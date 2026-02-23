@@ -85,7 +85,7 @@ function createCard(item: CatalogItem, dateFormatter: Intl.DateTimeFormat, isSel
   const updatedLabel = item.updatedAt ? dateFormatter.format(new Date(item.updatedAt)) : 'Unknown';
   const confidence = Math.round(Number(item.scoreConfidence ?? item.recommendedScore));
   const compareButtonClass = isSelectedForCompare ? 'btn btn-xs btn-primary' : 'btn btn-xs btn-outline';
-  const compareButtonLabel = isSelectedForCompare ? 'In compare' : 'Compare';
+  const compareButtonLabel = isSelectedForCompare ? 'In comparison' : 'Compare';
 
   article.innerHTML = `
     <div class="card-body gap-4 p-5 sm:p-6">

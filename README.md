@@ -146,7 +146,8 @@ Implemented in `src/pages/index.astro`:
 - Sorting with `Recommended` (composite score) as default
 - Async filtering/sorting through Web Worker
 - Compare drawer for side-by-side evaluation (up to 3)
-- Filter state synced in URL query string (`q`, `category`, `stars`, `updated`, `confidence`, `sort`, `featured`)
+- Filter state synced in URL query string (`q`, `category`, `stars`, `updated`, `confidence`, `sort`, `featured`, `compare`)
+- `compare` accepts comma-separated slugs, deduplicates while preserving first-seen order, ignores empty values, and is capped to 3 items
 
 Logic is split into:
 - `src/scripts/catalog-core.ts` (pure functions + state/query params)
