@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import {
   freshnessSignal,
   maintenanceSignal,
@@ -6,6 +5,9 @@ import {
   recommendedScoreFromSignals,
   scoreConfidenceFromSignals
 } from '../../lib/score-model';
+import integrationDataJson from './integration-data.json';
+import repositoriesJson from './integration-repositories.json';
+import lastSyncJson from './last-sync.json';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -49,15 +51,6 @@ export type HacsSyncMeta = {
   results?: Array<{ name: string; ok: boolean; error?: string }>;
 } | null;
 
-async function loadJson<T>(relativePath: string, fallback: T): Promise<T> {
-  try {
-    const content = await readFile(new URL(relativePath, import.meta.url), 'utf8');
-    return JSON.parse(content) as T;
-  } catch {
-    return fallback;
-  }
-}
-
 function toCategory(entry: RawEntry): string {
   const searchable = `${entry.domain || ''} ${(entry.topics || []).join(' ')} ${entry.description || ''}`.toLowerCase();
 
@@ -78,8 +71,11 @@ function slugFromRepo(repo: string): string {
 }
 
 export async function loadIntegrations(nowTs = Date.now()): Promise<HacsIntegration[]> {
-  const repositories = await loadJson<string[]>('./integration-repositories.json', []);
-  const integrationData = await loadJson<Record<string, RawEntry>>('./integration-data.json', {});
+  const repositories = Array.isArray(repositoriesJson) ? repositoriesJson : [];
+  const integrationData =
+    integrationDataJson && typeof integrationDataJson === 'object' && !Array.isArray(integrationDataJson)
+      ? (integrationDataJson as Record<string, RawEntry>)
+      : {};
 
   const repositorySet = new Set(Array.isArray(repositories) ? repositories : []);
   const rawEntries = Object.values(integrationData || {});
@@ -141,5 +137,8 @@ export async function loadIntegrations(nowTs = Date.now()): Promise<HacsIntegrat
 }
 
 export async function loadLastSync(): Promise<HacsSyncMeta> {
-  return loadJson<HacsSyncMeta>('./last-sync.json', null);
+  if (!lastSyncJson || typeof lastSyncJson !== 'object' || Array.isArray(lastSyncJson)) {
+    return null;
+  }
+  return lastSyncJson as HacsSyncMeta;
 }
