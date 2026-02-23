@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-02-22T23:33:17.405Z",
+  "strictMode": false,
+  "timeoutMs": 20000,
+  "results": [
+    {
+      "name": "integration-data",
+      "ok": true,
+      "file": "/Users/adriano/Documents/Codex Projects/HACS Showcase/src/data/hacs/integration-data.json"
+    },
+    {
+      "name": "integration-repositories",
+      "ok": true,
+      "file": "/Users/adriano/Documents/Codex Projects/HACS Showcase/src/data/hacs/integration-repositories.json"
+    }
+  ]
+}

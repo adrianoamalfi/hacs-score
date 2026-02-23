@@ -1,0 +1,382 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import IntegrationCard from '../components/IntegrationCard.astro';
+import { loadIntegrations, loadLastSync } from '../data/hacs/load';
+import { SCORE_WEIGHTS } from '../lib/score-model';
+
+const integrations = await loadIntegrations();
+const lastSync = await loadLastSync();
+
+const featuredIntegrations = integrations.filter((item) => item.featured).slice(0, 9);
+const categories = [...new Set(integrations.map((item) => item.category))].sort();
+const popularityWeightPct = Math.round(SCORE_WEIGHTS.popularity * 100);
+const freshnessWeightPct = Math.round(SCORE_WEIGHTS.freshness * 100);
+const maintenanceWeightPct = Math.round(SCORE_WEIGHTS.maintenance * 100);
+const catalogData = integrations.map((item) => ({
+  name: item.name,
+  author: item.author,
+  repo: item.repo,
+  slug: item.slug,
+  detailsPath: item.detailsPath,
+  category: item.category,
+  domain: item.domain,
+  stars: item.stars,
+  featured: item.featured,
+  recommendedScore: item.recommendedScore,
+  scoreConfidence: item.scoreConfidence,
+  url: item.url,
+  description: item.description,
+  updatedAt: item.updatedAt,
+  updatedTs: item.updatedTs,
+  openIssues: item.openIssues,
+  topics: item.topics
+}));
+
+const syncedAtLabel = lastSync?.generatedAt
+  ? new Date(lastSync.generatedAt).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  : 'Not synced yet';
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'HACS Scoreboard',
+  description:
+    'HACS Scoreboard is an analysis and decision layer built on HACS data, with one central KPI: HACS Score.',
+  inLanguage: 'en',
+  numberOfItems: catalogData.length,
+  dateModified: lastSync?.generatedAt || undefined,
+  about: {
+    '@type': 'SoftwareApplication',
+    name: 'HACS',
+    applicationCategory: 'Home Automation'
+  }
+};
+---
+
+<BaseLayout
+  title="HACS Scoreboard"
+  description="HACS Scoreboard is an analysis and decision layer built on HACS data, with one central KPI: HACS Score."
+>
+  <a
+    href="#content"
+    class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-base-100 focus:px-3 focus:py-2 focus:shadow"
+  >
+    Skip to main content
+  </a>
+
+  <div class="aurora-shell">
+    <header class="mx-auto max-w-7xl px-4 pb-10 pt-5 sm:px-6 lg:px-8">
+      <nav class="glass-panel flex flex-wrap items-center justify-between gap-3 px-4 py-3" aria-label="Primary">
+        <div class="flex items-center gap-3">
+          <span class="badge badge-primary badge-outline h-7 px-3 text-[11px] font-semibold uppercase tracking-[0.18em]">HACS</span>
+          <span class="text-sm font-semibold text-base-content/80">Integration quality ranking</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <a class="btn btn-sm btn-ghost gap-1.5" href="#featured">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m3 17 6-6 4 4 8-8" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 7h7v7" />
+            </svg>
+            Top Scores
+          </a>
+          <a class="btn btn-sm btn-primary gap-1.5" href="#catalog">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 6.75A2.25 2.25 0 0 1 5.25 4.5h13.5A2.25 2.25 0 0 1 21 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 17.25V6.75Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 9h9M7.5 12h9M7.5 15h6" />
+            </svg>
+            Open Scoreboard
+          </a>
+        </div>
+      </nav>
+
+      <section class="mt-8 grid gap-5 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
+        <article class="glass-panel p-6 sm:p-8">
+          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/55">HACS SCORE</p>
+          <h1 class="mt-3 text-4xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
+            Rank every integration by one number: <span class="text-primary">HACS Score</span>
+          </h1>
+          <p class="mt-5 max-w-3xl text-base leading-7 text-base-content/75 sm:text-lg">
+            HACS Scoreboard is an analysis and decision layer built on Home Assistant Community Store data.
+            Our objective is simple: prioritize one KPI, score quality.
+            Instead of reviewing scattered metrics, you get one clear and comparable number: HACS Score.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a class="btn btn-primary gap-1.5" href="#catalog">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="m19 9-5 5-4-4-4 4" />
+              </svg>
+              Analyze by score
+            </a>
+            <a class="btn btn-outline gap-1.5" href="#featured">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+              </svg>
+              View top scores
+            </a>
+          </div>
+          <div class="mt-6 flex flex-wrap gap-2">
+            <span class="badge badge-outline">Select top integrations faster</span>
+            <span class="badge badge-outline">Reduce unstable component risk</span>
+            <span class="badge badge-outline">Make decisions with measurable quality</span>
+          </div>
+        </article>
+
+        <div class="grid grid-cols-2 gap-3">
+          <article class="metric-tile">
+            <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/55">Integrations</p>
+            <p class="mt-1 text-2xl font-extrabold text-primary">{integrations.length.toLocaleString('en-US')}</p>
+          </article>
+          <article class="metric-tile">
+            <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/55">Top score</p>
+            <p class="mt-1 text-2xl font-extrabold text-secondary">{featuredIntegrations.length}</p>
+          </article>
+          <article class="metric-tile">
+            <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/55">Score segments</p>
+            <p class="mt-1 text-2xl font-extrabold">{categories.length}</p>
+          </article>
+          <article class="metric-tile">
+            <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/55">Data refresh</p>
+            <p class="mt-1 text-sm font-semibold">{syncedAtLabel}</p>
+          </article>
+        </div>
+      </section>
+    </header>
+  </div>
+
+  <main id="content" class="mx-auto max-w-7xl space-y-8 px-4 pb-16 sm:px-6 lg:px-8">
+    <section id="featured" class="section-shell space-y-4">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-bold sm:text-3xl">Highest scoring integrations</h2>
+          <p class="mt-1 text-sm text-base-content/70">The priority ranking for stability, quality, and real-world reliability.</p>
+        </div>
+        <a href="#catalog" class="btn btn-sm btn-outline gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 12h10M7 17h7" />
+          </svg>
+          Open full ranking
+        </a>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {featuredIntegrations.map((integration) => <IntegrationCard integration={integration} />)}
+      </div>
+    </section>
+
+    <section id="catalog" class="section-shell space-y-4">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-bold sm:text-3xl">HACS Score catalog</h2>
+          <p class="mt-1 text-sm text-base-content/70">Filter and sort to quickly identify integrations with the strongest value.</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2" role="group" aria-label="Quick filters">
+        <button type="button" class="btn btn-sm btn-outline rounded-full gap-1.5" data-preset="popular">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m3 17 6-6 4 4 8-8" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14 7h7v7" />
+          </svg>
+          High score by popularity
+        </button>
+        <button type="button" class="btn btn-sm btn-outline rounded-full gap-1.5" data-preset="recent">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
+            <circle cx="12" cy="12" r="9" />
+          </svg>
+          Recently updated scores
+        </button>
+        <button type="button" class="btn btn-sm btn-outline rounded-full gap-1.5" data-preset="featured">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+          </svg>
+          Top score cohort
+        </button>
+        <button type="button" class="btn btn-sm btn-outline rounded-full gap-1.5" data-preset="reliable">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3 4 7v6c0 5 3.4 7.7 8 9 4.6-1.3 8-4 8-9V7l-8-4Z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2 2 4-4" />
+          </svg>
+          High score + high confidence
+        </button>
+        <button type="button" class="btn btn-sm btn-ghost rounded-full gap-1.5" data-preset="reset">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v5h5" />
+          </svg>
+          Reset all
+        </button>
+      </div>
+
+      <article class="glass-panel p-4 sm:p-5">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 class="text-lg font-bold">How scoring works</h3>
+            <p class="mt-1 text-sm text-base-content/70">
+              Score is computed from three weighted signals so every ranking stays transparent.
+            </p>
+          </div>
+          <span class="badge badge-outline">Score formula</span>
+        </div>
+        <div class="mt-4 grid gap-2 sm:grid-cols-3">
+          <div class="metric-tile p-3">
+            <p class="text-[11px] uppercase tracking-[0.14em] text-base-content/55">{popularityWeightPct}%</p>
+            <p class="mt-1 text-sm font-semibold">Popularity percentile</p>
+          </div>
+          <div class="metric-tile p-3">
+            <p class="text-[11px] uppercase tracking-[0.14em] text-base-content/55">{freshnessWeightPct}%</p>
+            <p class="mt-1 text-sm font-semibold">Freshness decay</p>
+          </div>
+          <div class="metric-tile p-3">
+            <p class="text-[11px] uppercase tracking-[0.14em] text-base-content/55">{maintenanceWeightPct}%</p>
+            <p class="mt-1 text-sm font-semibold">Maintenance health</p>
+          </div>
+        </div>
+      </article>
+
+      <div class="filter-sticky">
+        <form class="glass-panel" aria-label="Catalog controls" onsubmit="return false;">
+          <div class="grid gap-3 p-4 lg:grid-cols-7">
+            <label class="space-y-1 lg:col-span-2" for="searchInput">
+              <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Search</span>
+              <input id="searchInput" class="input input-bordered w-full" type="search" autocomplete="off" placeholder="name, repo, topics..." />
+            </label>
+
+            <label class="space-y-1" for="categorySelect">
+              <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Category</span>
+              <select id="categorySelect" class="select select-bordered w-full">
+                <option value="all">All categories</option>
+                {categories.map((category) => <option value={category}>{category}</option>)}
+              </select>
+            </label>
+
+            <label class="space-y-1" for="starsSelect">
+              <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Min stars</span>
+              <select id="starsSelect" class="select select-bordered w-full">
+                <option value="0">Any</option>
+                <option value="100">100+</option>
+                <option value="500">500+</option>
+                <option value="1000">1,000+</option>
+                <option value="2500">2,500+</option>
+              </select>
+            </label>
+
+            <label class="space-y-1" for="updatedSelect">
+              <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Updated</span>
+              <select id="updatedSelect" class="select select-bordered w-full">
+                <option value="0">Any time</option>
+                <option value="30">30 days</option>
+                <option value="90">90 days</option>
+                <option value="365">1 year</option>
+              </select>
+            </label>
+
+            <label class="space-y-1" for="confidenceSelect">
+              <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Min confidence</span>
+              <select id="confidenceSelect" class="select select-bordered w-full">
+                <option value="0">Any</option>
+                <option value="50">50+</option>
+                <option value="65">65+</option>
+                <option value="75">75+</option>
+                <option value="85">85+</option>
+              </select>
+            </label>
+
+            <label class="space-y-1" for="sortSelect">
+              <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Ranking</span>
+              <select id="sortSelect" class="select select-bordered w-full">
+                <option value="recommended-desc">HACS Score (default)</option>
+                <option value="stars-desc">Most stars</option>
+                <option value="updated-desc">Recently updated</option>
+                <option value="name-asc">Name A-Z</option>
+                <option value="name-desc">Name Z-A</option>
+                <option value="stars-asc">Fewest stars</option>
+              </select>
+            </label>
+
+            <label class="flex items-center gap-2 pt-6 lg:col-span-1" for="featuredOnly">
+              <input id="featuredOnly" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
+              <span class="text-sm font-medium">Featured only</span>
+            </label>
+          </div>
+        </form>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p id="resultsSummary" class="text-sm text-base-content/70" aria-live="polite"></p>
+        <button id="resetFilters" class="btn btn-outline btn-sm gap-1.5" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v5h5" />
+          </svg>
+          Reset filters
+        </button>
+      </div>
+
+      <div id="integrationsGrid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-live="polite"></div>
+      <p id="emptyState" class="text-sm italic text-base-content/60" hidden>No integrations match your filters.</p>
+
+      <div class="flex justify-center">
+        <button id="loadMoreButton" class="btn btn-primary gap-1.5" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14" />
+          </svg>
+          Load more
+        </button>
+      </div>
+    </section>
+
+    <div id="compareBar" class="fixed inset-x-3 bottom-3 z-40 hidden sm:inset-x-4">
+      <div class="glass-panel border border-primary/30 p-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p id="compareSummary" class="text-sm font-medium text-base-content/85">0 selected for comparison</p>
+          <div class="flex items-center gap-2">
+            <button id="clearCompareButton" class="btn btn-ghost btn-sm" type="button">Clear</button>
+            <button id="openCompareButton" class="btn btn-primary btn-sm" type="button">Compare</button>
+          </div>
+        </div>
+        <div id="compareSelectedPills" class="mt-2 flex flex-wrap gap-1.5"></div>
+      </div>
+    </div>
+
+    <dialog id="compareDialog" class="modal">
+      <div class="modal-box max-w-5xl">
+        <h3 class="text-xl font-bold">Integration comparison</h3>
+        <p class="mt-1 text-sm text-base-content/70">Compare score quality signals side by side with visual bars.</p>
+        <div id="compareResults" class="mt-4 space-y-3"></div>
+        <div class="mt-4 rounded-xl border border-base-300/70 bg-base-200/50 p-3 text-xs text-base-content/70">
+          Chart legend: higher bars are better for score, confidence, and maintenance health.
+        </div>
+        <div class="modal-action">
+          <form method="dialog">
+            <button class="btn">Close</button>
+          </form>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+      </form>
+    </dialog>
+  </main>
+
+  <footer class="mx-auto mb-16 max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="glass-panel flex flex-wrap items-center justify-between gap-2 px-4 py-4 text-sm text-base-content/70">
+      <p>HACS Scoreboard does not replace HACS. It makes evaluation more strategic.</p>
+      <p>Source: <code class="rounded bg-base-200 px-1 py-0.5">src/data/hacs/*.json</code></p>
+    </div>
+  </footer>
+
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
+  <script id="hacsData" type="application/json" set:html={JSON.stringify(catalogData)}></script>
+  <script>
+    import { initCatalog } from '../scripts/catalog';
+
+    initCatalog({ pageSize: 60 });
+  </script>
+</BaseLayout>

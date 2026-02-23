@@ -1,0 +1,71 @@
+---
+import { SCORE_HELP_TEXT } from '../lib/score-model';
+
+const { integration } = Astro.props;
+
+function formatStars(value) {
+  return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value);
+}
+
+function formatDate(value) {
+  if (!value) return 'Unknown';
+  return new Date(value).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit'
+  });
+}
+---
+
+<article class="featured-card-2026">
+  <div class="card-body gap-4 p-5 sm:p-6">
+    <div class="flex items-start justify-between gap-3">
+      <div class="space-y-2">
+        <span class="badge badge-outline badge-sm">Top score cohort</span>
+        <h3 class="card-title text-xl font-bold text-base-content">{integration.name}</h3>
+      </div>
+      <div class="text-right">
+        <div class="flex items-center justify-end gap-1">
+          <p class="text-[10px] uppercase tracking-[0.14em] text-base-content/55">HACS Score</p>
+          <button type="button" class="btn btn-ghost btn-xs px-1" title={SCORE_HELP_TEXT} aria-label="How this score is calculated">?</button>
+        </div>
+        <p class="text-2xl font-extrabold text-accent">{integration.recommendedScore}</p>
+      </div>
+    </div>
+
+    <p class="text-xs text-base-content/70">by {integration.author} · {integration.category}</p>
+    <p class="text-sm leading-6 text-base-content/85">{integration.description}</p>
+    <div class="flex flex-wrap items-center gap-2 text-xs text-base-content/70">
+      <span class="badge badge-outline badge-sm">{integration.repo}</span>
+      <span class="badge badge-outline badge-sm">Domain: {integration.domain}</span>
+      <span class="badge badge-outline badge-sm">Updated: {formatDate(integration.updatedAt)}</span>
+      <span class="badge badge-success badge-outline badge-sm">Confidence: {Math.round(integration.scoreConfidence ?? integration.recommendedScore)}</span>
+    </div>
+
+    <div class="card-actions mt-auto items-center justify-between gap-2 pt-1">
+      <span class="flex items-center gap-1 text-sm font-semibold text-success" aria-label={`${integration.stars} stars`}>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+        </svg>
+        {formatStars(integration.stars)} stars
+      </span>
+      <div class="flex gap-2">
+        <a class="btn btn-sm btn-primary gap-1.5" href={integration.detailsPath}>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="m19 9-5 5-4-4-4 4" />
+          </svg>
+          Open Score Profile
+        </a>
+        <a class="btn btn-sm btn-outline gap-1.5" href={integration.url} target="_blank" rel="noopener noreferrer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14 4h6v6" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 14 20 4" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" />
+          </svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</article>

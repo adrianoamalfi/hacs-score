@@ -1,0 +1,21 @@
+{
+  "name": "hacs-showcase",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "sync:hacs": "node scripts/sync-hacs-data.mjs",
+    "build": "npm run sync:hacs && astro build",
+    "verify:publication": "node scripts/verify-publication.mjs",
+    "preview": "astro preview",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.12",
+    "astro": "^5.2.0",
+    "daisyui": "^5.0.50",
+    "tailwindcss": "^4.1.12",
+    "vitest": "^3.2.4"
+  }
+}

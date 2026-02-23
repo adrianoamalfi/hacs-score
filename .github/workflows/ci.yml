@@ -1,0 +1,45 @@
+name: CI Validation
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      SITE_URL: ${{ vars.SITE_URL || 'https://example.com' }}
+      BASE_PATH: ${{ vars.BASE_PATH || '/' }}
+      HACS_FETCH_TIMEOUT_MS: "30000"
+      HACS_FETCH_STRICT: ${{ github.event_name == 'pull_request' && 'false' || (github.ref == 'refs/heads/main' && 'true' || 'false') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Log effective publication settings
+        run: |
+          echo "SITE_URL=${SITE_URL}"
+          echo "BASE_PATH=${BASE_PATH}"
+          echo "HACS_FETCH_STRICT=${HACS_FETCH_STRICT}"
+          echo "HACS_FETCH_TIMEOUT_MS=${HACS_FETCH_TIMEOUT_MS}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build site
+        run: npm run build
+
+      - name: Verify publication output
+        run: npm run verify:publication
+

@@ -1,0 +1,69 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io', github.repository_owner) }}
+      BASE_PATH: ${{ vars.BASE_PATH || '/' }}
+      HACS_FETCH_STRICT: "true"
+      HACS_FETCH_TIMEOUT_MS: "30000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate publication settings
+        run: |
+          echo "SITE_URL=${SITE_URL}"
+          echo "BASE_PATH=${BASE_PATH}"
+          echo "HACS_FETCH_STRICT=${HACS_FETCH_STRICT}"
+          echo "HACS_FETCH_TIMEOUT_MS=${HACS_FETCH_TIMEOUT_MS}"
+          if [ "${SITE_URL}" = "https://example.com" ]; then
+            echo "::error::SITE_URL resolves to placeholder https://example.com. Configure repository variable SITE_URL before deployment."
+            exit 1
+          fi
+
+      - name: Build site
+        run: npm run build
+
+      - name: Verify publication output
+        run: npm run verify:publication
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

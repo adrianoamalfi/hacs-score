@@ -1,0 +1,136 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: hacs-dark --default;
+}
+
+@plugin "daisyui/theme" {
+  name: "hacs-dark";
+  default: false;
+  prefersdark: false;
+  color-scheme: dark;
+
+  --color-base-100: oklch(21% 0.02 252);
+  --color-base-200: oklch(25% 0.025 252);
+  --color-base-300: oklch(30% 0.03 252);
+  --color-base-content: oklch(94% 0.01 240);
+
+  --color-primary: oklch(70% 0.16 245);
+  --color-primary-content: oklch(22% 0.03 245);
+  --color-secondary: oklch(76% 0.13 188);
+  --color-secondary-content: oklch(20% 0.03 188);
+  --color-accent: oklch(78% 0.15 58);
+  --color-accent-content: oklch(22% 0.04 58);
+
+  --color-neutral: oklch(18% 0.015 252);
+  --color-neutral-content: oklch(95% 0.01 240);
+  --color-info: oklch(73% 0.13 235);
+  --color-info-content: oklch(20% 0.03 235);
+  --color-success: oklch(73% 0.13 156);
+  --color-success-content: oklch(20% 0.03 156);
+  --color-warning: oklch(82% 0.13 80);
+  --color-warning-content: oklch(24% 0.03 80);
+  --color-error: oklch(72% 0.17 26);
+  --color-error-content: oklch(20% 0.03 26);
+
+  --radius-selector: 0.75rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: "Space Grotesk", sans-serif;
+    @apply text-base-content antialiased;
+    background:
+      radial-gradient(circle at 12% 10%, rgba(27, 114, 245, 0.25) 0%, transparent 36%),
+      radial-gradient(circle at 88% 16%, rgba(65, 186, 189, 0.22) 0%, transparent 33%),
+      radial-gradient(circle at 50% 86%, rgba(227, 145, 87, 0.16) 0%, transparent 26%),
+      linear-gradient(180deg, #0f1a2a 0%, #102132 52%, #13283b 100%);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: "Syne", sans-serif;
+    @apply tracking-tight;
+  }
+}
+
+@layer components {
+  .aurora-shell {
+    @apply relative overflow-hidden;
+  }
+
+  .aurora-shell::before {
+    content: "";
+    @apply pointer-events-none absolute -left-40 -top-20 h-80 w-80 rounded-full opacity-70 blur-3xl;
+    background: radial-gradient(circle, color-mix(in oklab, var(--color-primary) 42%, transparent) 0%, transparent 70%);
+  }
+
+  .aurora-shell::after {
+    content: "";
+    @apply pointer-events-none absolute -right-44 top-8 h-96 w-96 rounded-full opacity-60 blur-3xl;
+    background: radial-gradient(circle, color-mix(in oklab, var(--color-accent) 38%, transparent) 0%, transparent 72%);
+  }
+
+  .glass-panel {
+    @apply rounded-3xl border border-base-300/70 bg-base-100/75 shadow-sm backdrop-blur-md;
+  }
+
+  .section-shell {
+    @apply rounded-3xl border border-base-300/70 bg-base-100/70 p-5 shadow-sm backdrop-blur-md sm:p-6;
+  }
+
+  .metric-tile {
+    @apply rounded-2xl border border-base-300/80 bg-base-100/85 p-4 shadow-xs;
+  }
+
+  .catalog-card-2026 {
+    @apply card border border-base-300/70 bg-base-100/88 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md;
+  }
+
+  .featured-card-2026 {
+    @apply card border border-base-300/75 bg-base-100/90 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  .filter-sticky {
+    @apply sticky top-3 z-20;
+  }
+
+  .skeleton-shimmer {
+    @apply relative overflow-hidden;
+  }
+
+  .skeleton-shimmer::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-base-300) 65%, white) 50%, transparent);
+    animation: shimmer 1.2s infinite;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
