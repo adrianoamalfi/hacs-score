@@ -151,7 +151,7 @@ const jsonLd = {
       </div>
     </section>
 
-    <section id="catalog" class="deferred-section section-shell space-y-4">
+    <section id="catalog" class="deferred-section section-shell space-y-4" data-catalog-url={catalogDataUrl}>
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 class="text-2xl font-bold sm:text-3xl">HACS Score catalog</h2>
@@ -355,7 +355,9 @@ const jsonLd = {
   </footer>
 
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
-  <script define:vars={{ catalogDataUrl }}>
+  <script>
+    const catalogDataUrl =
+      document.getElementById('catalog')?.getAttribute('data-catalog-url') || new URL('api/catalog.json', window.location.href).pathname;
     let hasStartedCatalog = false;
 
     const startCatalog = async () => {
