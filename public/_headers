@@ -13,6 +13,9 @@
 /*.css
   Cache-Control: public, max-age=86400
 
+/*.json
+  Cache-Control: public, max-age=3600
+
 /*.png
   Cache-Control: public, max-age=86400
 
@@ -39,4 +42,3 @@
 
 /*.html
   Cache-Control: no-store
-

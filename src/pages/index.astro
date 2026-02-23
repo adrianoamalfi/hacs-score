@@ -12,25 +12,7 @@ const categories = [...new Set(integrations.map((item) => item.category))].sort(
 const popularityWeightPct = Math.round(SCORE_WEIGHTS.popularity * 100);
 const freshnessWeightPct = Math.round(SCORE_WEIGHTS.freshness * 100);
 const maintenanceWeightPct = Math.round(SCORE_WEIGHTS.maintenance * 100);
-const catalogData = integrations.map((item) => ({
-  name: item.name,
-  author: item.author,
-  repo: item.repo,
-  slug: item.slug,
-  detailsPath: item.detailsPath,
-  category: item.category,
-  domain: item.domain,
-  stars: item.stars,
-  featured: item.featured,
-  recommendedScore: item.recommendedScore,
-  scoreConfidence: item.scoreConfidence,
-  url: item.url,
-  description: item.description,
-  updatedAt: item.updatedAt,
-  updatedTs: item.updatedTs,
-  openIssues: item.openIssues,
-  topics: item.topics
-}));
+const catalogDataUrl = `${import.meta.env.BASE_URL}api/catalog.json`;
 
 const syncedAtLabel = lastSync?.generatedAt
   ? new Date(lastSync.generatedAt).toLocaleString('en-US', {
@@ -49,7 +31,7 @@ const jsonLd = {
   description:
     'HACS Scoreboard is an analysis and decision layer built on HACS data, with one central KPI: HACS Score.',
   inLanguage: 'en',
-  numberOfItems: catalogData.length,
+  numberOfItems: integrations.length,
   dateModified: lastSync?.generatedAt || undefined,
   about: {
     '@type': 'SoftwareApplication',
@@ -169,7 +151,7 @@ const jsonLd = {
       </div>
     </section>
 
-    <section id="catalog" class="section-shell space-y-4">
+    <section id="catalog" class="deferred-section section-shell space-y-4">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 class="text-2xl font-bold sm:text-3xl">HACS Score catalog</h2>
@@ -373,10 +355,37 @@ const jsonLd = {
   </footer>
 
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
-  <script id="hacsData" type="application/json" set:html={JSON.stringify(catalogData)}></script>
-  <script>
-    import { initCatalog } from '../scripts/catalog';
+  <script define:vars={{ catalogDataUrl }}>
+    let hasStartedCatalog = false;
 
-    initCatalog({ pageSize: 60 });
+    const startCatalog = async () => {
+      if (hasStartedCatalog) return;
+      hasStartedCatalog = true;
+      const { initCatalog } = await import('../scripts/catalog');
+      await initCatalog({ pageSize: 24, dataUrl: catalogDataUrl });
+    };
+
+    const catalogSection = document.getElementById('catalog');
+    if (catalogSection) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            observer.disconnect();
+            void startCatalog();
+          }
+        },
+        { rootMargin: '320px 0px' }
+      );
+      observer.observe(catalogSection);
+
+      catalogSection.addEventListener('pointerdown', () => void startCatalog(), { once: true });
+      catalogSection.addEventListener('focusin', () => void startCatalog(), { once: true });
+    }
+
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(() => void startCatalog(), { timeout: 1800 });
+    } else {
+      window.setTimeout(() => void startCatalog(), 1200);
+    }
   </script>
 </BaseLayout>

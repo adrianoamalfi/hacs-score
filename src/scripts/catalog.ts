@@ -129,12 +129,35 @@ function createCard(item: CatalogItem, dateFormatter: Intl.DateTimeFormat, isSel
   return article;
 }
 
-export function initCatalog(options: { pageSize?: number } = {}) {
-  const pageSize = options.pageSize ?? 60;
+function debounce<T extends (...args: unknown[]) => void>(callback: T, delayMs: number): T {
+  let timeoutId: number | undefined;
 
-  const dataEl = document.getElementById('hacsData');
-  const allIntegrations: CatalogItem[] = JSON.parse(dataEl?.textContent || '[]');
+  return ((...args: Parameters<T>) => {
+    window.clearTimeout(timeoutId);
+    timeoutId = window.setTimeout(() => callback(...args), delayMs);
+  }) as T;
+}
 
+async function loadCatalogData(dataUrl?: string): Promise<CatalogItem[]> {
+  const inlineData = document.getElementById('hacsData')?.textContent?.trim();
+  if (inlineData) {
+    return JSON.parse(inlineData) as CatalogItem[];
+  }
+
+  if (!dataUrl) {
+    return [];
+  }
+
+  const response = await fetch(dataUrl, { headers: { Accept: 'application/json' } });
+  if (!response.ok) {
+    throw new Error(`Catalog fetch failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CatalogItem[];
+}
+
+export async function initCatalog(options: { pageSize?: number; dataUrl?: string } = {}) {
+  const pageSize = options.pageSize ?? 24;
   const searchInput = document.getElementById('searchInput') as HTMLInputElement;
   const categorySelect = document.getElementById('categorySelect') as HTMLSelectElement;
   const starsSelect = document.getElementById('starsSelect') as HTMLSelectElement;
@@ -156,11 +179,11 @@ export function initCatalog(options: { pageSize?: number } = {}) {
   const clearCompareButton = document.getElementById('clearCompareButton') as HTMLButtonElement;
   const compareDialog = document.getElementById('compareDialog') as HTMLDialogElement;
   const compareResults = document.getElementById('compareResults') as HTMLDivElement;
-
-  const categories = [...new Set(allIntegrations.map((item) => item.category))];
+  const categories = [...categorySelect.options].map((option) => option.value).filter((value) => value !== 'all');
   const dateFormatter = new Intl.DateTimeFormat('en', { year: 'numeric', month: 'short', day: '2-digit' });
-  const bySlug = new Map(allIntegrations.map((item) => [item.slug, item]));
 
+  let allIntegrations: CatalogItem[] = [];
+  let bySlug = new Map<string, CatalogItem>();
   let state = queryToState(window.location.search, categories);
   let visibleLimit = pageSize;
   let requestId = 0;
@@ -168,6 +191,22 @@ export function initCatalog(options: { pageSize?: number } = {}) {
   const compareOrder: string[] = [];
 
   setControlValues(state);
+  renderSkeleton(Math.min(pageSize, 8));
+  grid.setAttribute('aria-busy', 'true');
+  resultsSummary.textContent = 'Loading catalog...';
+
+  try {
+    allIntegrations = await loadCatalogData(options.dataUrl);
+    bySlug = new Map(allIntegrations.map((item) => [item.slug, item]));
+  } catch {
+    resultsSummary.textContent = 'Unable to load catalog data.';
+    emptyState.hidden = false;
+    emptyState.textContent = 'Catalog temporarily unavailable.';
+    grid.replaceChildren();
+    loadMoreButton.hidden = true;
+    grid.setAttribute('aria-busy', 'false');
+    return;
+  }
 
   const worker =
     typeof Worker !== 'undefined'
@@ -355,13 +394,15 @@ export function initCatalog(options: { pageSize?: number } = {}) {
   }
 
   [searchInput, categorySelect, starsSelect, updatedSelect, confidenceSelect, sortSelect, featuredOnly].forEach((input) => {
-    input.addEventListener('input', () => {
-      void renderCatalog(true);
-    });
     input.addEventListener('change', () => {
       void renderCatalog(true);
     });
   });
+
+  const debouncedSearchRender = debounce(() => {
+    void renderCatalog(true);
+  }, 180);
+  searchInput.addEventListener('input', debouncedSearchRender);
 
   loadMoreButton.addEventListener('click', () => {
     visibleLimit += pageSize;
@@ -441,6 +482,13 @@ export function initCatalog(options: { pageSize?: number } = {}) {
     setControlValues(state);
     void renderCatalog(false);
   });
+  window.addEventListener(
+    'pagehide',
+    () => {
+      worker?.terminate();
+    },
+    { once: true }
+  );
 
   renderComparePanel();
   void renderCatalog(false);
