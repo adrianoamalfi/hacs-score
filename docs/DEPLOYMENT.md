@@ -39,6 +39,23 @@ Publish and validation workflows:
    - `HACS_FETCH_TIMEOUT_MS`: `30000`
 4. Deploy.
 
+## Cloudflare Workers (Wrangler assets deploy)
+
+Use this mode when your platform runs an explicit deploy command like `npx wrangler deploy`.
+
+### Steps
+
+1. Build the site (`npm run build`) so `dist/` exists.
+2. Deploy with Wrangler:
+   - `npx wrangler deploy`
+3. Set environment variables:
+   - `SITE_URL`: public Cloudflare Workers/custom-domain URL
+   - `BASE_PATH`: `/`
+   - `HACS_FETCH_STRICT`: `true`
+   - `HACS_FETCH_TIMEOUT_MS`: `30000`
+
+This repo includes `wrangler.jsonc` with `assets.directory: "./dist"`, so Wrangler publishes the static build output.
+
 ## Environment matrix
 
 | Variable | GitHub Pages (user/org) | GitHub Pages (project) | Cloudflare Pages |
