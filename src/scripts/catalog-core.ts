@@ -16,6 +16,15 @@ export type CatalogState = {
   featured: boolean;
 };
 
+export type FilterChipKey = 'q' | 'category' | 'stars' | 'updated' | 'confidence' | 'sort' | 'featured';
+
+export type ActiveFilterChip = {
+  key: FilterChipKey;
+  label: string;
+};
+
+export type EmptyStateAction = 'clear-updated' | 'lower-confidence' | 'disable-featured' | 'reset-all';
+
 export type CatalogItem = {
   name: string;
   author: string;
@@ -42,6 +51,19 @@ const SORT_VALUES: SortKey[] = ['recommended-desc', 'stars-desc', 'updated-desc'
 const ALLOWED_STARS = [0, 100, 500, 1000, 2500];
 const ALLOWED_UPDATED = [0, 30, 90, 365];
 const ALLOWED_CONFIDENCE = [0, 50, 65, 75, 85];
+const SORT_LABELS: Record<SortKey, string> = {
+  'recommended-desc': 'HACS Score',
+  'stars-desc': 'Most stars',
+  'updated-desc': 'Recently updated',
+  'name-asc': 'Name A-Z',
+  'name-desc': 'Name Z-A',
+  'stars-asc': 'Fewest stars'
+};
+const UPDATED_LABELS: Record<number, string> = {
+  30: 'last 30 days',
+  90: 'last 90 days',
+  365: 'last year'
+};
 
 export const DEFAULT_STATE: CatalogState = {
   q: '',
@@ -72,6 +94,63 @@ export function applyPreset(preset: string, state: CatalogState = DEFAULT_STATE)
     return { ...next, confidence: 75, stars: 500, sort: 'recommended-desc' };
   }
 
+  return { ...DEFAULT_STATE };
+}
+
+function toStarsLabel(stars: number): string {
+  return `${stars.toLocaleString('en-US')}+`;
+}
+
+function toUpdatedLabel(days: number): string {
+  return UPDATED_LABELS[days] || `last ${days} days`;
+}
+
+function getPreviousConfidenceStep(confidence: number): number {
+  for (let idx = ALLOWED_CONFIDENCE.length - 1; idx >= 0; idx -= 1) {
+    const candidate = ALLOWED_CONFIDENCE[idx];
+    if (candidate < confidence) return candidate;
+  }
+  return 0;
+}
+
+export function buildActiveFilterChips(state: CatalogState): ActiveFilterChip[] {
+  const chips: ActiveFilterChip[] = [];
+
+  if (state.q) chips.push({ key: 'q', label: `Search: ${state.q}` });
+  if (state.category !== 'all') chips.push({ key: 'category', label: `Category: ${state.category}` });
+  if (state.stars > 0) chips.push({ key: 'stars', label: `Min stars: ${toStarsLabel(state.stars)}` });
+  if (state.updated > 0) chips.push({ key: 'updated', label: `Updated: ${toUpdatedLabel(state.updated)}` });
+  if (state.confidence > 0) chips.push({ key: 'confidence', label: `Min confidence: ${state.confidence}+` });
+  if (state.sort !== DEFAULT_STATE.sort) chips.push({ key: 'sort', label: `Sort: ${SORT_LABELS[state.sort]}` });
+  if (state.featured) chips.push({ key: 'featured', label: 'Featured only' });
+
+  return chips;
+}
+
+export function clearFilter(state: CatalogState, key: FilterChipKey): CatalogState {
+  if (key === 'q') return { ...state, q: DEFAULT_STATE.q };
+  if (key === 'category') return { ...state, category: DEFAULT_STATE.category };
+  if (key === 'stars') return { ...state, stars: DEFAULT_STATE.stars };
+  if (key === 'updated') return { ...state, updated: DEFAULT_STATE.updated };
+  if (key === 'confidence') return { ...state, confidence: DEFAULT_STATE.confidence };
+  if (key === 'sort') return { ...state, sort: DEFAULT_STATE.sort };
+  return { ...state, featured: DEFAULT_STATE.featured };
+}
+
+export function getEmptyStateActions(state: CatalogState): EmptyStateAction[] {
+  const actions: EmptyStateAction[] = [];
+
+  if (state.updated > 0) actions.push('clear-updated');
+  if (state.confidence > 0) actions.push('lower-confidence');
+  if (state.featured) actions.push('disable-featured');
+
+  return actions.length > 0 ? actions : ['reset-all'];
+}
+
+export function applyEmptyStateAction(state: CatalogState, action: EmptyStateAction): CatalogState {
+  if (action === 'clear-updated') return { ...state, updated: 0 };
+  if (action === 'lower-confidence') return { ...state, confidence: getPreviousConfidenceStep(state.confidence) };
+  if (action === 'disable-featured') return { ...state, featured: false };
   return { ...DEFAULT_STATE };
 }
 

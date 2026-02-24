@@ -1,12 +1,18 @@
 import {
+  applyEmptyStateAction,
   applyPreset,
+  buildActiveFilterChips,
+  clearFilter,
   compareSlugsToQueryValue,
   DEFAULT_STATE,
   filterRows,
+  getEmptyStateActions,
   queryValueToCompareSlugs,
   queryToState,
   sortRows,
   stateToQuery,
+  type EmptyStateAction,
+  type FilterChipKey,
   type CatalogItem,
   type CatalogState
 } from './catalog-core';
@@ -179,6 +185,13 @@ async function loadCatalogData(dataUrl?: string): Promise<CatalogItem[]> {
   return (await response.json()) as CatalogItem[];
 }
 
+function emptyStateActionLabel(action: EmptyStateAction): string {
+  if (action === 'clear-updated') return 'Remove updated filter';
+  if (action === 'lower-confidence') return 'Lower confidence threshold';
+  if (action === 'disable-featured') return 'Show non-featured integrations';
+  return 'Reset all filters';
+}
+
 export async function initCatalog(options: { pageSize?: number; dataUrl?: string } = {}) {
   const pageSize = options.pageSize ?? 24;
   const searchInput = document.getElementById('searchInput') as HTMLInputElement;
@@ -190,7 +203,10 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
   const featuredOnly = document.getElementById('featuredOnly') as HTMLInputElement;
 
   const grid = document.getElementById('integrationsGrid') as HTMLDivElement;
-  const emptyState = document.getElementById('emptyState') as HTMLParagraphElement;
+  const emptyState = document.getElementById('emptyState') as HTMLDivElement;
+  const emptyStateMessage = document.getElementById('emptyStateMessage') as HTMLParagraphElement;
+  const emptyStateActions = document.getElementById('emptyStateActions') as HTMLDivElement;
+  const activeFilterChips = document.getElementById('activeFilterChips') as HTMLDivElement;
   const resultsSummary = document.getElementById('resultsSummary') as HTMLParagraphElement;
   const loadMoreButton = document.getElementById('loadMoreButton') as HTMLButtonElement;
   const resetFiltersButton = document.getElementById('resetFilters') as HTMLButtonElement;
@@ -204,6 +220,7 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
   const compareResults = document.getElementById('compareResults') as HTMLDivElement;
   const shareCompareButton = document.getElementById('shareCompareButton') as HTMLButtonElement;
   const compareShareStatus = document.getElementById('compareShareStatus') as HTMLParagraphElement;
+  const advancedFilters = document.getElementById('advancedFilters') as HTMLDetailsElement | null;
   const categories = [...categorySelect.options].map((option) => option.value).filter((value) => value !== 'all');
   const dateFormatter = new Intl.DateTimeFormat('en', { year: 'numeric', month: 'short', day: '2-digit' });
 
@@ -223,9 +240,14 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
   const selectedSlugs = new Set<string>();
   const compareOrder: string[] = [];
 
+  if (advancedFilters && typeof window.matchMedia === 'function') {
+    advancedFilters.open = window.matchMedia('(min-width: 1024px)').matches;
+  }
+
   setControlValues(state);
   renderSkeleton(Math.min(pageSize, 8));
   grid.setAttribute('aria-busy', 'true');
+  activeFilterChips.hidden = true;
   resultsSummary.textContent = 'Loading catalog...';
 
   try {
@@ -235,7 +257,9 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
   } catch {
     resultsSummary.textContent = 'Unable to load catalog data.';
     emptyState.hidden = false;
-    emptyState.textContent = 'Catalog temporarily unavailable.';
+    emptyStateMessage.textContent = 'Catalog temporarily unavailable.';
+    emptyStateActions.innerHTML = '';
+    activeFilterChips.hidden = true;
     grid.replaceChildren();
     loadMoreButton.hidden = true;
     grid.setAttribute('aria-busy', 'false');
@@ -300,6 +324,40 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
 
   function clearShareStatus() {
     compareShareStatus.textContent = '';
+  }
+
+  function renderActiveFilterChips() {
+    const chips = buildActiveFilterChips(state);
+    activeFilterChips.hidden = chips.length === 0;
+    activeFilterChips.innerHTML = chips
+      .map(
+        (chip) => `
+          <button type="button" class="badge badge-outline gap-1.5 px-2.5 py-2" data-filter-clear="${escapeHtml(chip.key)}" aria-label="Remove ${escapeHtml(chip.label)} filter">
+            ${escapeHtml(chip.label)}
+            <span aria-hidden="true">x</span>
+          </button>
+        `
+      )
+      .join('');
+  }
+
+  function renderEmptyState(total: number) {
+    if (total > 0) {
+      emptyState.hidden = true;
+      emptyStateMessage.textContent = 'No integrations match your filters.';
+      emptyStateActions.innerHTML = '';
+      return;
+    }
+
+    const actions = getEmptyStateActions(state);
+    emptyState.hidden = false;
+    emptyStateMessage.textContent = 'No integrations match your current filters.';
+    emptyStateActions.innerHTML = actions
+      .map((action) => {
+        const className = action === 'reset-all' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
+        return `<button type="button" class="${className}" data-empty-action="${action}">${escapeHtml(emptyStateActionLabel(action))}</button>`;
+      })
+      .join('');
   }
 
   function applySharedCompareSelection() {
@@ -419,12 +477,13 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
   function renderResult(payload: { total: number; visible: CatalogItem[] }) {
     grid.replaceChildren(...payload.visible.map((item) => createCard(item, dateFormatter, selectedSlugs.has(item.slug))));
 
-    emptyState.hidden = payload.total !== 0;
+    renderEmptyState(payload.total);
     loadMoreButton.hidden = payload.total <= payload.visible.length;
 
     const suffix = payload.total !== payload.visible.length ? ` (showing first ${payload.visible.length})` : '';
     resultsSummary.textContent = `${payload.total.toLocaleString('en-US')} scored integration${payload.total === 1 ? '' : 's'} matched${suffix}`;
     grid.setAttribute('aria-busy', 'false');
+    renderActiveFilterChips();
     renderComparePanel();
   }
 
@@ -498,6 +557,34 @@ export async function initCatalog(options: { pageSize?: number; dataUrl?: string
     visibleLimit += pageSize;
     track('catalog_load_more', { next_visible_limit: visibleLimit });
     void renderCatalog(false);
+  });
+
+  activeFilterChips.addEventListener('click', (event) => {
+    const target = event.target as HTMLElement;
+    const clearButton = target.closest<HTMLButtonElement>('[data-filter-clear]');
+    if (!clearButton) return;
+
+    const key = clearButton.dataset.filterClear as FilterChipKey | undefined;
+    if (!key) return;
+
+    state = clearFilter(state, key);
+    setControlValues(state);
+    track('catalog_filter_chip_cleared', { filter: key });
+    void renderCatalog(true);
+  });
+
+  emptyStateActions.addEventListener('click', (event) => {
+    const target = event.target as HTMLElement;
+    const actionButton = target.closest<HTMLButtonElement>('[data-empty-action]');
+    if (!actionButton) return;
+
+    const action = actionButton.dataset.emptyAction as EmptyStateAction | undefined;
+    if (!action) return;
+
+    state = applyEmptyStateAction(state, action);
+    setControlValues(state);
+    track('catalog_empty_state_action', { action });
+    void renderCatalog(true);
   });
 
   grid.addEventListener('click', (event) => {

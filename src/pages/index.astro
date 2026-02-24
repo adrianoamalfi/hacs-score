@@ -6,9 +6,11 @@ import { loadIntegrations, loadLastSync } from '../data/hacs/load';
 import { withBasePath } from '../lib/base-path';
 import { SCORE_WEIGHTS } from '../lib/score-model';
 import { buildHomeSeo } from '../lib/seo';
+import { formatBlogDate, getBlogPostPath, getPublishedBlogPosts } from '../lib/blog';
 
 const integrations = await loadIntegrations();
 const lastSync = await loadLastSync();
+const latestInsights = (await getPublishedBlogPosts()).slice(0, 3);
 
 const featuredIntegrations = integrations.filter((item) => item.featured).slice(0, 9);
 const categories = [...new Set(integrations.map((item) => item.category))].sort();
@@ -85,27 +87,32 @@ const seo = buildHomeSeo({
         <article class="glass-panel p-6 sm:p-8">
           <p class="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/55">HACS SCORE</p>
           <h1 class="mt-3 text-4xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
-            Rank every integration by one number: <span class="text-primary">HACS Score</span>
+            Choose reliable Home Assistant integrations with one number: <span class="text-primary">HACS Score</span>
           </h1>
           <p class="mt-5 max-w-3xl text-base leading-7 text-base-content/75 sm:text-lg">
-            HACS Scoreboard is an analysis and decision layer built on Home Assistant Community Store data.
-            Our objective is simple: prioritize one KPI, score quality.
-            Instead of reviewing scattered metrics, you get one clear and comparable number: HACS Score.
+            HACS Scoreboard helps Home Assistant users prioritize stability and maintenance quality faster.
+            Instead of comparing scattered repository metrics, you can sort every integration with one transparent score.
           </p>
           <div class="mt-6 flex flex-wrap gap-3">
             <a class="btn btn-primary gap-1.5" href="#catalog" data-umami-event="homepage_hero_open_scoreboard" data-umami-location="hero">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="m19 9-5 5-4-4-4 4" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 6.75A2.25 2.25 0 0 1 5.25 4.5h13.5A2.25 2.25 0 0 1 21 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 17.25V6.75Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 9h9M7.5 12h9M7.5 15h6" />
               </svg>
-              Analyze by score
+              Open Scoreboard
             </a>
-            <a class="btn btn-outline gap-1.5" href="#featured" data-umami-event="homepage_hero_view_top_scores" data-umami-location="hero">
+            <a class="btn btn-outline gap-1.5" href="#how-scoring-works" data-umami-event="homepage_hero_open_formula" data-umami-location="hero">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
+                <circle cx="12" cy="12" r="9" />
               </svg>
-              View top scores
+              How scoring works
             </a>
+          </div>
+          <div class="trust-strip mt-6" aria-label="Scoreboard trust signals">
+            <span><strong>{integrations.length.toLocaleString('en-US')}</strong> integrations scored</span>
+            <span>Data refresh <strong>{syncedAtLabel}</strong></span>
+            <a href="#how-scoring-works" data-umami-event="homepage_trust_open_formula" data-umami-location="hero_trust">See score formula</a>
           </div>
           <div class="mt-6 flex flex-wrap gap-2">
             <span class="badge badge-outline">Select top integrations faster</span>
@@ -120,11 +127,11 @@ const seo = buildHomeSeo({
             <p class="mt-1 text-2xl font-extrabold text-primary">{integrations.length.toLocaleString('en-US')}</p>
           </article>
           <article class="metric-tile">
-            <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/55">Top score</p>
+            <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/55">Featured integrations</p>
             <p class="mt-1 text-2xl font-extrabold text-secondary">{featuredIntegrations.length}</p>
           </article>
           <article class="metric-tile">
-            <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/55">Score segments</p>
+            <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/55">Categories</p>
             <p class="mt-1 text-2xl font-extrabold">{categories.length}</p>
           </article>
           <article class="metric-tile">
@@ -137,6 +144,44 @@ const seo = buildHomeSeo({
   </div>
 
   <main id="content" class="mx-auto max-w-7xl space-y-8 px-4 pb-16 sm:px-6 lg:px-8">
+    <section id="onboarding" class="section-shell space-y-4">
+      <div>
+        <h2 class="text-2xl font-bold sm:text-3xl">How to decide in 3 steps</h2>
+        <p class="mt-1 text-sm text-base-content/70">Use one workflow to shortlist, compare, and validate integrations before installing.</p>
+      </div>
+      <div class="grid gap-3 md:grid-cols-3">
+        <a class="journey-step" href="#catalog" data-umami-event="homepage_onboarding_filter" data-umami-location="onboarding">
+          <span class="journey-step-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M7 12h10M10 18h4" />
+            </svg>
+          </span>
+          <p class="text-sm font-semibold uppercase tracking-[0.14em] text-base-content/65">1. Filter</p>
+          <p class="mt-2 text-sm text-base-content/80">Narrow by category, stars, freshness, and confidence to focus on viable options.</p>
+        </a>
+        <a class="journey-step" href="#compareHint" data-umami-event="homepage_onboarding_compare" data-umami-location="onboarding">
+          <span class="journey-step-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 6h9M8 12h9M8 18h9" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h.01M4 12h.01M4 18h.01" />
+            </svg>
+          </span>
+          <p class="text-sm font-semibold uppercase tracking-[0.14em] text-base-content/65">2. Compare</p>
+          <p class="mt-2 text-sm text-base-content/80">Select up to three integrations and compare score, confidence, and maintenance side by side.</p>
+        </a>
+        <a class="journey-step" href="#catalog" data-umami-event="homepage_onboarding_profile" data-umami-location="onboarding">
+          <span class="journey-step-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="m19 9-5 5-4-4-4 4" />
+            </svg>
+          </span>
+          <p class="text-sm font-semibold uppercase tracking-[0.14em] text-base-content/65">3. Open Score Profile</p>
+          <p class="mt-2 text-sm text-base-content/80">Open detailed profile pages to validate context before adopting an integration.</p>
+        </a>
+      </div>
+    </section>
+
     <section id="featured" class="section-shell space-y-4">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -200,7 +245,7 @@ const seo = buildHomeSeo({
         </button>
       </div>
 
-      <article class="glass-panel p-4 sm:p-5">
+      <article id="how-scoring-works" class="glass-panel p-4 sm:p-5">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 class="text-lg font-bold">How scoring works</h3>
@@ -228,85 +273,100 @@ const seo = buildHomeSeo({
 
       <div class="filter-sticky">
         <form class="glass-panel" aria-label="Catalog controls" onsubmit="return false;">
-          <div class="grid gap-3 p-4 lg:grid-cols-7">
-            <label class="space-y-1 lg:col-span-2" for="searchInput">
-              <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Search</span>
-              <input id="searchInput" class="input input-bordered w-full" type="search" autocomplete="off" placeholder="name, repo, topics..." />
-            </label>
+          <div class="space-y-3 p-4">
+            <div class="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
+              <label class="space-y-1" for="searchInput">
+                <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Search</span>
+                <input id="searchInput" class="input input-bordered w-full" type="search" autocomplete="off" placeholder="name, repo, topics..." />
+              </label>
 
-            <label class="space-y-1" for="categorySelect">
-              <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Category</span>
-              <select id="categorySelect" class="select select-bordered w-full">
-                <option value="all">All categories</option>
-                {categories.map((category) => <option value={category}>{category}</option>)}
-              </select>
-            </label>
+              <label class="space-y-1" for="sortSelect">
+                <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Ranking</span>
+                <select id="sortSelect" class="select select-bordered w-full">
+                  <option value="recommended-desc">HACS Score (default)</option>
+                  <option value="stars-desc">Most stars</option>
+                  <option value="updated-desc">Recently updated</option>
+                  <option value="name-asc">Name A-Z</option>
+                  <option value="name-desc">Name Z-A</option>
+                  <option value="stars-asc">Fewest stars</option>
+                </select>
+              </label>
 
-            <label class="space-y-1" for="starsSelect">
-              <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Min stars</span>
-              <select id="starsSelect" class="select select-bordered w-full">
-                <option value="0">Any</option>
-                <option value="100">100+</option>
-                <option value="500">500+</option>
-                <option value="1000">1,000+</option>
-                <option value="2500">2,500+</option>
-              </select>
-            </label>
+              <label class="flex items-center gap-2 pt-6" for="featuredOnly">
+                <input id="featuredOnly" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
+                <span class="text-sm font-medium">Featured only</span>
+              </label>
+            </div>
 
-            <label class="space-y-1" for="updatedSelect">
-              <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Updated</span>
-              <select id="updatedSelect" class="select select-bordered w-full">
-                <option value="0">Any time</option>
-                <option value="30">30 days</option>
-                <option value="90">90 days</option>
-                <option value="365">1 year</option>
-              </select>
-            </label>
+            <details id="advancedFilters" class="advanced-filters">
+              <summary class="advanced-filters-summary">Advanced filters</summary>
+              <div class="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                <label class="space-y-1" for="categorySelect">
+                  <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Category</span>
+                  <select id="categorySelect" class="select select-bordered w-full">
+                    <option value="all">All categories</option>
+                    {categories.map((category) => <option value={category}>{category}</option>)}
+                  </select>
+                </label>
 
-            <label class="space-y-1" for="confidenceSelect">
-              <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Min confidence</span>
-              <select id="confidenceSelect" class="select select-bordered w-full">
-                <option value="0">Any</option>
-                <option value="50">50+</option>
-                <option value="65">65+</option>
-                <option value="75">75+</option>
-                <option value="85">85+</option>
-              </select>
-            </label>
+                <label class="space-y-1" for="starsSelect">
+                  <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Min stars</span>
+                  <select id="starsSelect" class="select select-bordered w-full">
+                    <option value="0">Any</option>
+                    <option value="100">100+</option>
+                    <option value="500">500+</option>
+                    <option value="1000">1,000+</option>
+                    <option value="2500">2,500+</option>
+                  </select>
+                </label>
 
-            <label class="space-y-1" for="sortSelect">
-              <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Ranking</span>
-              <select id="sortSelect" class="select select-bordered w-full">
-                <option value="recommended-desc">HACS Score (default)</option>
-                <option value="stars-desc">Most stars</option>
-                <option value="updated-desc">Recently updated</option>
-                <option value="name-asc">Name A-Z</option>
-                <option value="name-desc">Name Z-A</option>
-                <option value="stars-asc">Fewest stars</option>
-              </select>
-            </label>
+                <label class="space-y-1" for="updatedSelect">
+                  <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Updated</span>
+                  <select id="updatedSelect" class="select select-bordered w-full">
+                    <option value="0">Any time</option>
+                    <option value="30">30 days</option>
+                    <option value="90">90 days</option>
+                    <option value="365">1 year</option>
+                  </select>
+                </label>
 
-            <label class="flex items-center gap-2 pt-6 lg:col-span-1" for="featuredOnly">
-              <input id="featuredOnly" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
-              <span class="text-sm font-medium">Featured only</span>
-            </label>
+                <label class="space-y-1" for="confidenceSelect">
+                  <span class="text-xs font-medium uppercase tracking-wide text-base-content/55">Min confidence</span>
+                  <select id="confidenceSelect" class="select select-bordered w-full">
+                    <option value="0">Any</option>
+                    <option value="50">50+</option>
+                    <option value="65">65+</option>
+                    <option value="75">75+</option>
+                    <option value="85">85+</option>
+                  </select>
+                </label>
+              </div>
+            </details>
           </div>
         </form>
       </div>
 
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <p id="resultsSummary" class="text-sm text-base-content/70" aria-live="polite"></p>
-        <button id="resetFilters" class="btn btn-outline btn-sm gap-1.5" type="button">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v5h5" />
-          </svg>
-          Reset filters
-        </button>
+      <div class="space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p id="resultsSummary" class="text-sm text-base-content/70" aria-live="polite"></p>
+          <button id="resetFilters" class="btn btn-outline btn-sm gap-1.5" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v5h5" />
+            </svg>
+            Reset filters
+          </button>
+        </div>
+        <div id="activeFilterChips" class="filter-chip-row" aria-live="polite" hidden></div>
       </div>
 
+      <p id="compareHint" class="compare-hint">Select up to 3 integrations to compare side by side.</p>
       <div id="integrationsGrid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-live="polite"></div>
-      <p id="emptyState" class="text-sm italic text-base-content/60" hidden>No integrations match your filters.</p>
+
+      <div id="emptyState" class="empty-state-panel" hidden>
+        <p id="emptyStateMessage" class="text-sm text-base-content/80">No integrations match your filters.</p>
+        <div id="emptyStateActions" class="mt-3 flex flex-wrap gap-2"></div>
+      </div>
 
       <div class="flex justify-center">
         <button id="loadMoreButton" class="btn btn-primary gap-1.5" type="button">
@@ -316,6 +376,52 @@ const seo = buildHomeSeo({
           Load more
         </button>
       </div>
+    </section>
+
+    <section id="latest-insights" class="section-shell space-y-4">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-bold sm:text-3xl">Latest insights</h2>
+          <p class="mt-1 text-sm text-base-content/70">Fresh playbooks and checklists to improve integration decisions.</p>
+        </div>
+        <a
+          class="btn btn-sm btn-outline gap-1.5"
+          href={withBasePath('blog/', import.meta.env.BASE_URL)}
+          data-umami-event="homepage_latest_open_blog"
+          data-umami-location="latest_insights"
+        >
+          Open blog
+        </a>
+      </div>
+
+      {latestInsights.length > 0 ? (
+        <div class="grid gap-4 md:grid-cols-3">
+          {latestInsights.map((post) => (
+            <article class="insight-card">
+              <p class="text-xs text-base-content/65">{formatBlogDate(post.data.pubDate)}</p>
+              <h3 class="mt-2 text-lg font-bold leading-tight">
+                <a
+                  class="link link-hover"
+                  href={getBlogPostPath(post.slug, import.meta.env.BASE_URL)}
+                  data-umami-event="homepage_latest_open_post"
+                  data-umami-location="latest_insights"
+                  data-umami-label={post.slug}
+                >
+                  {post.data.title}
+                </a>
+              </h3>
+              <p class="mt-2 text-sm leading-6 text-base-content/80">{post.data.description}</p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <article class="insight-empty">
+          <p class="text-sm text-base-content/75">No published insights yet.</p>
+          <a class="btn btn-sm btn-outline" href={withBasePath('blog/', import.meta.env.BASE_URL)}>
+            Visit blog
+          </a>
+        </article>
+      )}
     </section>
 
     <div id="compareBar" class="fixed inset-x-3 bottom-3 z-40 hidden sm:inset-x-4">
