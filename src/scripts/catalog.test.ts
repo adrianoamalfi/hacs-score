@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyEmptyStateAction,
   applyPreset,
+  buildActiveFilterChips,
+  clearFilter,
   compareSlugsToQueryValue,
   DEFAULT_STATE,
   filterRows,
+  getEmptyStateActions,
   queryToState,
   queryValueToCompareSlugs,
   sortRows,
@@ -160,6 +164,73 @@ describe('catalog pure functions', () => {
   it('falls back to default sort when sort is invalid', () => {
     const restored = queryToState('?sort=invalid', ['Security', 'Energy']);
     expect(restored.sort).toBe(DEFAULT_STATE.sort);
+  });
+
+  it('builds active filter chips for non-default state values', () => {
+    const chips = buildActiveFilterChips({
+      q: 'camera',
+      category: 'Security',
+      stars: 500,
+      updated: 30,
+      confidence: 65,
+      sort: 'updated-desc',
+      featured: true
+    });
+
+    expect(chips).toEqual([
+      { key: 'q', label: 'Search: camera' },
+      { key: 'category', label: 'Category: Security' },
+      { key: 'stars', label: 'Min stars: 500+' },
+      { key: 'updated', label: 'Updated: last 30 days' },
+      { key: 'confidence', label: 'Min confidence: 65+' },
+      { key: 'sort', label: 'Sort: Recently updated' },
+      { key: 'featured', label: 'Featured only' }
+    ]);
+  });
+
+  it('clears an individual filter key without affecting others', () => {
+    const start = {
+      q: 'camera',
+      category: 'Security',
+      stars: 500,
+      updated: 30,
+      confidence: 65,
+      sort: 'updated-desc' as const,
+      featured: true
+    };
+
+    const cleared = clearFilter(start, 'confidence');
+    expect(cleared).toEqual({
+      ...start,
+      confidence: 0
+    });
+  });
+
+  it('derives contextual empty-state actions with fallback reset', () => {
+    expect(
+      getEmptyStateActions({
+        ...DEFAULT_STATE,
+        updated: 30,
+        confidence: 75,
+        featured: true
+      })
+    ).toEqual(['clear-updated', 'lower-confidence', 'disable-featured']);
+
+    expect(getEmptyStateActions(DEFAULT_STATE)).toEqual(['reset-all']);
+  });
+
+  it('applies empty-state actions deterministically', () => {
+    const start = {
+      ...DEFAULT_STATE,
+      updated: 30,
+      confidence: 75,
+      featured: true
+    };
+
+    expect(applyEmptyStateAction(start, 'clear-updated').updated).toBe(0);
+    expect(applyEmptyStateAction(start, 'lower-confidence').confidence).toBe(65);
+    expect(applyEmptyStateAction(start, 'disable-featured').featured).toBe(false);
+    expect(applyEmptyStateAction(start, 'reset-all')).toEqual(DEFAULT_STATE);
   });
 
   it('serializes compare slugs into a capped, unique query value', () => {
